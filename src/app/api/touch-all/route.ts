@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { ACTIVE_PLAYERS } from "@/lib/players";
+import { parseInventoryPage } from "@/lib/inventoryParser";
+import { parseInteractions } from "@/lib/parser";
+import { upsertInteraction, upsertRecipients } from "@/lib/db";
 
 export async function GET() {
   const sql = neon(process.env.POSTGRES_URL!);
-  const origin = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.PARSE_URL || "https://rgg-filters.vercel.app";
-  const headers = {
-    Authorization: `Bearer ${process.env.PARSE_SECRET}`,
-    "Content-Type": "application/json",
-  };
 
   const now = Date.now();
   const tasks: string[] = [];
@@ -30,14 +27,56 @@ export async function GET() {
 
   const results: Record<string, unknown> = {};
 
-  // Run stale tasks in parallel
   await Promise.all(
     tasks.map(async (task) => {
       try {
-        const endpoint = task === "interactions" ? "/api/parse" : "/api/parse-inventories";
-        const res = await fetch(`${origin}${endpoint}`, { method: "POST", headers });
-        results[task] = await res.json();
-      } catch (e) {
+        if (task === "interactions") {
+          // Direct call to parse logic
+          const res = await fetch("https://rgg.land/interactions");
+          const html = await res.text();
+          const parsed = parseInteractions(html);
+          let inserted = 0;
+          for (const interaction of parsed) {
+            await upsertInteraction(
+              interaction.id, interaction.dateAdded, interaction.senderName,
+              interaction.senderLogin, interaction.actionType, interaction.note, interaction.rawText
+            );
+            await upsertRecipients(interaction.id, interaction.recipients);
+            inserted++;
+          }
+          results.interactions = { success: true, count: inserted, parsed: parsed.length };
+        } else if (task === "inventories") {
+          // Direct call to inventory parse logic
+          const batchSize = 5;
+          const allItems: { playerName: string; itemName: string; itemType: string; quantity: number }[] = [];
+          for (let i = 0; i < ACTIVE_PLAYERS.length; i += batchSize) {
+            const batch = ACTIVE_PLAYERS.slice(i, i + batchSize);
+            const batchResults = await Promise.allSettled(
+              batch.map(async (player) => {
+                const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
+                  signal: AbortSignal.timeout(8000),
+                });
+                return parseInventoryPage(await res.text(), player);
+              })
+            );
+            for (const r of batchResults) {
+              if (r.status === "fulfilled") allItems.push(...r.value);
+            }
+          }
+          await sql`DELETE FROM player_items`;
+          let inserted = 0;
+          for (const item of allItems) {
+            await sql`
+              INSERT INTO player_items (player_name, item_name, item_type, quantity)
+              VALUES (${item.playerName}, ${item.itemName}, ${item.itemType}, ${item.quantity})
+              ON CONFLICT (player_name, item_name, item_type)
+              DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()
+            `;
+            inserted++;
+          }
+          results.inventories = { success: true, total: inserted, players: ACTIVE_PLAYERS.length };
+        }
+      } catch (e: unknown) {
         results[task] = { error: String(e) };
       }
     })
