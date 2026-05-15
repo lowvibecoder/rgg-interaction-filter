@@ -131,7 +131,7 @@ export default function InteractionsFilters({
             openTo={currentMonthSame ? "day" : undefined}
             minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
             maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{ textField: { size: "small", sx: { width: 130 } } }}
+            slotProps={{ textField: { size: "small", sx: { width: 135 } } }}
           />
           <DatePicker
             label="Дата по"
@@ -143,7 +143,7 @@ export default function InteractionsFilters({
             openTo={currentMonthSame ? "day" : undefined}
             minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
             maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{ textField: { size: "small", sx: { width: 130 } } }}
+            slotProps={{ textField: { size: "small", sx: { width: 135 } } }}
           />
           <Autocomplete
             options={senders}
