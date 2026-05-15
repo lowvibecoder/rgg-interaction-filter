@@ -107,12 +107,26 @@ export function parseRscPayload(html: string): RggInteraction[] {
 }
 
 export function parseInteractions(html: string): ParsedInteraction[] {
+  // Build RSC reference map: $N -> resolved text
+  // Format in HTML: N:Ta??,"resolved text"
+  const refMap = new Map<string, string>();
+  const refRegex = /(\d{2,}|[0-9a-f]{2,}):T[0-9a-f]+,\\"([^\\]+)\\"/g;
+  let m: RegExpExecArray | null;
+  while ((m = refRegex.exec(html)) !== null) {
+    refMap.set(m[1], m[2]);
+  }
+
   const raw = parseRscPayload(html);
 
-  return raw
-    .filter((item) => item.text && !item.text.startsWith("$"))
-    .map((item) => {
-    const { actionType, note } = extractActionType(item.text);
+  return raw.map((item) => {
+    let text = item.text;
+    // Resolve RSC references like $$48 or $48
+    if (text && text.startsWith("$")) {
+      const refKey = text.replace(/^\$+/, "");
+      const resolved = refMap.get(refKey);
+      if (resolved) text = resolved;
+    }
+    const { actionType, note } = extractActionType(text);
     return {
       id: item._id,
       dateAdded: item.dateAdded,
