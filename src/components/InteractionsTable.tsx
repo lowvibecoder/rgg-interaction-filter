@@ -66,7 +66,7 @@ export default function InteractionsTable({ rows, total }: TableProps) {
           zIndex: 10,
         }}
       >
-        <Box sx={{ minWidth: 140 }}>Дата</Box>
+        <Box sx={{ minWidth: 56 }}>Дата</Box>
         <Box sx={{ minWidth: 120 }}>От кого</Box>
         <Box sx={{ minWidth: 150, flex: 1 }}>Кому</Box>
         <Box sx={{ minWidth: 130 }}>Действие</Box>
@@ -87,9 +87,11 @@ export default function InteractionsTable({ rows, total }: TableProps) {
         >
           <Typography
             variant="body2"
-            sx={{ minWidth: 140, whiteSpace: "nowrap", color: "text.secondary" }}
+            sx={{ minWidth: 60, whiteSpace: "nowrap", color: "text.secondary", lineHeight: 1.3 }}
           >
-            {dayjs(Number(row.date_added)).format("DD MMM YYYY HH:mm")}
+            {dayjs(Number(row.date_added)).format("DD.MM")}
+            <br />
+            {dayjs(Number(row.date_added)).format("HH:mm")}
           </Typography>
           <Typography variant="body2" sx={{ minWidth: 120 }}>
             {row.sender_name}
