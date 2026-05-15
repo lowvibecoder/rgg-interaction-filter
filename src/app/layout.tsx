@@ -6,6 +6,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import Box from "@mui/material/Box";
 import theme from "./theme";
 import Sidebar from "@/components/Sidebar";
+import AutoRefresh from "@/components/AutoRefresh";
 import "./globals.css";
 
 const rubik = Rubik({
@@ -29,6 +30,7 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
+            <AutoRefresh />
             <Box sx={{ display: "flex", minHeight: "100vh" }}>
               <Sidebar />
               <Box sx={{ flex: 1, overflow: "auto", p: 0 }}>

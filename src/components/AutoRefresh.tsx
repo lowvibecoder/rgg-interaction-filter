@@ -3,14 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export default function AutoRefresh({ intervalMs = 60000 }: { intervalMs?: number }) {
+export default function AutoRefresh({ intervalMs = 120000 }: { intervalMs?: number }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Trigger background parse and refresh page data
     const id = setInterval(async () => {
       try {
-        await fetch("/api/touch-inventory");
+        await fetch("/api/touch-all");
       } catch {}
       router.refresh();
     }, intervalMs);

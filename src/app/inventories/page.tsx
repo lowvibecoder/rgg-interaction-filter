@@ -2,7 +2,6 @@ import { Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead
 import type { Metadata } from "next";
 import { getInventoryItems, getPlayersByInventoryItem, getGameItems, getInventoryLastUpdated } from "@/lib/db";
 import InventoryFilter from "@/components/InventoryFilter";
-import AutoRefresh from "@/components/AutoRefresh";
 
 export const metadata: Metadata = {
   title: "Инвентари | RGG",
@@ -26,7 +25,6 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
-      <AutoRefresh />
       <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
           Инвентари
