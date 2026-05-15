@@ -31,7 +31,7 @@ export default function RootLayout({
             <CssBaseline />
             <Box sx={{ display: "flex", minHeight: "100vh" }}>
               <Sidebar />
-              <Box sx={{ flex: 1, overflow: "auto" }}>
+              <Box sx={{ flex: 1, overflow: "auto", p: 0 }}>
                 {children}
               </Box>
             </Box>
