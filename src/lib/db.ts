@@ -259,3 +259,17 @@ export async function getInteractions(query: InteractionQuery) {
     totalPages: Math.ceil(total / pageSize),
   };
 }
+
+interface GameItemRecord {
+  name: string;
+  description: string;
+  source: string;
+  icon: string;
+}
+
+export async function getGameItems(): Promise<GameItemRecord[]> {
+  const sql = getSql();
+  return (await sql`
+    SELECT name, description, source, icon FROM game_items
+  `) as GameItemRecord[];
+}

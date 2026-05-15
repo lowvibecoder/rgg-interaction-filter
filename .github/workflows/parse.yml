@@ -9,8 +9,19 @@ jobs:
   parse:
     runs-on: ubuntu-latest
     steps:
-      - name: Call parse endpoint
+      - name: Parse interactions
         run: |
           curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse" \
+            -H "Authorization: Bearer ${{ secrets.PARSE_SECRET }}" \
+            -H "Content-Type: application/json"
+
+  parse-game-data:
+    runs-on: ubuntu-latest
+    schedule:
+      - cron: "0 6 * * *"
+    steps:
+      - name: Parse game data (wheels, items, rolls, effects, events)
+        run: |
+          curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse-game-data" \
             -H "Authorization: Bearer ${{ secrets.PARSE_SECRET }}" \
             -H "Content-Type: application/json"

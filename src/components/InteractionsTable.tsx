@@ -5,6 +5,7 @@ import {
   Stack,
   Typography,
   Box,
+  Tooltip,
 } from "@mui/material";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
@@ -27,6 +28,7 @@ dayjs.updateLocale("ru", {
 interface TableProps {
   rows: ParsedInteractionWithRecipients[];
   total: number;
+  gameItemMap: Record<string, { description: string; source: string }>;
 }
 
 const actionColors: Record<string, string> = {
@@ -47,7 +49,9 @@ function getActionColor(action: string): string {
   return "#1e1e1e";
 }
 
-export default function InteractionsTable({ rows, total }: TableProps) {
+type GameItemInfo = { description: string; source: string };
+
+export default function InteractionsTable({ rows, total, gameItemMap }: TableProps) {
   return (
     <Box>
       <Box
@@ -111,24 +115,7 @@ export default function InteractionsTable({ rows, total }: TableProps) {
             ))}
           </Stack>
           <Box sx={{ width: 150, flexShrink: 0 }}>
-            <Typography
-              variant="caption"
-              sx={{
-                display: "inline-block",
-                px: 1,
-                py: 0.3,
-                borderRadius: "4px",
-                backgroundColor: getActionColor(row.action_type),
-                color: "#fff",
-                fontWeight: 600,
-                lineHeight: 1.3,
-                wordBreak: "break-word",
-                overflowWrap: "break-word",
-                whiteSpace: "normal",
-              }}
-            >
-              {row.action_type}
-            </Typography>
+            <GameActionChip actionType={row.action_type} gameItemMap={gameItemMap} />
           </Box>
           <Typography
             variant="body2"
@@ -148,4 +135,57 @@ export default function InteractionsTable({ rows, total }: TableProps) {
       </Typography>
     </Box>
   );
+}
+
+function GameActionChip({
+  actionType,
+  gameItemMap,
+}: {
+  actionType: string;
+  gameItemMap: Record<string, { description: string; source: string }>;
+}) {
+  const info = gameItemMap[actionType];
+  const chip = (
+    <Typography
+      variant="caption"
+      sx={{
+        display: "inline-block",
+        px: 1,
+        py: 0.3,
+        borderRadius: "4px",
+        backgroundColor: getActionColor(actionType),
+        color: "#fff",
+        fontWeight: 600,
+        lineHeight: 1.3,
+        wordBreak: "break-word",
+        overflowWrap: "break-word",
+        whiteSpace: "normal",
+      }}
+    >
+      {actionType}
+    </Typography>
+  );
+
+  if (info?.description) {
+    return (
+      <Tooltip
+        title={
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+              {actionType}
+            </Typography>
+            <Typography variant="caption" sx={{ whiteSpace: "pre-line", fontSize: "0.75rem" }}>
+              {info.description}
+            </Typography>
+          </Box>
+        }
+        arrow
+        placement="right"
+      >
+        {chip}
+      </Tooltip>
+    );
+  }
+
+  return chip;
 }

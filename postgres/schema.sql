@@ -20,3 +20,13 @@ CREATE INDEX IF NOT EXISTS idx_interactions_sender ON interactions(sender_name);
 CREATE INDEX IF NOT EXISTS idx_interactions_action ON interactions(action_type);
 CREATE INDEX IF NOT EXISTS idx_recipients_interaction ON interaction_recipients(interaction_id);
 CREATE INDEX IF NOT EXISTS idx_recipients_name ON interaction_recipients(recipient_name);
+
+CREATE TABLE IF NOT EXISTS game_items (
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL,
+  icon TEXT DEFAULT '',
+  PRIMARY KEY (name, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_items_name ON game_items(name);

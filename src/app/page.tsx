@@ -7,6 +7,7 @@ import {
   getRecipients,
   getActionTypes,
   getDateRange,
+  getGameItems,
 } from "@/lib/db";
 
 interface PageProps {
@@ -31,7 +32,7 @@ export default async function Home({ searchParams }: PageProps) {
     activeOnly: params.activeOnly !== "false",
   };
 
-  const [senders, recipients, actionTypes, interactionData, dateRange] =
+  const [senders, recipients, actionTypes, interactionData, dateRange, gameItems] =
     await Promise.all([
       getSenders({ ...baseFilters, recipient: params.recipient, action: params.action }),
       getRecipients({ ...baseFilters, sender: params.sender, action: params.action }),
@@ -44,7 +45,14 @@ export default async function Home({ searchParams }: PageProps) {
         pageSize: 10000,
       }),
       getDateRange(),
+      getGameItems(),
     ]);
+
+  // Build description lookup: name -> { description, source }
+  const gameItemMap = new Map<string, { description: string; source: string }>();
+  for (const item of gameItems) {
+    gameItemMap.set(item.name, { description: item.description, source: item.source });
+  }
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
@@ -62,6 +70,7 @@ export default async function Home({ searchParams }: PageProps) {
         <InteractionsTable
           rows={interactionData.rows}
           total={interactionData.total}
+          gameItemMap={Object.fromEntries(gameItemMap)}
         />
       </Stack>
     </Box>
