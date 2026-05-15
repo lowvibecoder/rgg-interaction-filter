@@ -116,7 +116,7 @@ export default function InteractionsFilters({
         <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2 }}>
           <DatePicker
             label="Дата с"
-            format="dd.MM.yyyy"
+            format="dd.MM.yy"
             value={dateFrom}
             onChange={(v) => navigate({ dateFrom: v ? v.toISOString().slice(0, 10) : null })}
             views={currentMonthSame ? ["day"] : undefined}
@@ -124,11 +124,11 @@ export default function InteractionsFilters({
             openTo={currentMonthSame ? "day" : undefined}
             minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
             maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{ textField: { size: "small", sx: { width: 130 } } }}
+            slotProps={{ textField: { size: "small", sx: { width: 115 } } }}
           />
           <DatePicker
             label="Дата по"
-            format="dd.MM.yyyy"
+            format="dd.MM.yy"
             value={dateTo}
             onChange={(v) => navigate({ dateTo: v ? v.toISOString().slice(0, 10) : null })}
             views={currentMonthSame ? ["day"] : undefined}
