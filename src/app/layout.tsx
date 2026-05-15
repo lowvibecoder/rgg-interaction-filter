@@ -3,7 +3,9 @@ import { Rubik } from "next/font/google";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import Box from "@mui/material/Box";
 import theme from "./theme";
+import Sidebar from "@/components/Sidebar";
 
 const rubik = Rubik({
   subsets: ["cyrillic", "latin"],
@@ -26,7 +28,12 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            {children}
+            <Box sx={{ display: "flex", minHeight: "100vh" }}>
+              <Sidebar />
+              <Box sx={{ flex: 1, overflow: "auto" }}>
+                {children}
+              </Box>
+            </Box>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
