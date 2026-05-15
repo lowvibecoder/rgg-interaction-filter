@@ -138,13 +138,6 @@ export default function InteractionsFilters({
               </MenuItem>
             ))}
           </TextField>
-          <TextField
-            label="Поиск в тексте"
-            size="small"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            sx={{ minWidth: 200 }}
-          />
           <FormControlLabel
             control={
               <Checkbox
@@ -153,6 +146,13 @@ export default function InteractionsFilters({
               />
             }
             label="Только активные игроки"
+          />
+          <TextField
+            label="Поиск в тексте"
+            size="small"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            sx={{ minWidth: 200 }}
           />
           <Button variant="contained" onClick={applyFilters}>
             Применить
