@@ -6,6 +6,7 @@ import {
   getSenders,
   getRecipients,
   getActionTypes,
+  getDateRange,
 } from "@/lib/db";
 import { ACTIVE_PLAYERS } from "@/lib/players";
 
@@ -24,7 +25,7 @@ interface PageProps {
 export default async function Home({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  const [senders, recipients, actionTypes, interactionData] =
+  const [senders, recipients, actionTypes, interactionData, dateRange] =
     await Promise.all([
       getSenders(),
       getRecipients(),
@@ -39,6 +40,7 @@ export default async function Home({ searchParams }: PageProps) {
         activeOnly: params.activeOnly !== "false",
         pageSize: 10000,
       }),
+      getDateRange(),
     ]);
 
   return (
@@ -52,6 +54,8 @@ export default async function Home({ searchParams }: PageProps) {
           recipients={recipients.map((r) => r.recipient_name)}
           actionTypes={actionTypes.map((a) => a.action_type)}
           activePlayers={ACTIVE_PLAYERS}
+          defaultMinDate={dateRange.minDate?.toISOString() ?? null}
+          defaultMaxDate={dateRange.maxDate?.toISOString() ?? null}
         />
         <InteractionsTable
           rows={interactionData.rows}

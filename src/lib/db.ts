@@ -65,6 +65,26 @@ export async function getActionTypes() {
   return rows;
 }
 
+export async function getDateRange() {
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT MIN(date_added) as min_date, MAX(date_added) as max_date FROM interactions
+  `) as { min_date: number | null; max_date: number | null }[];
+  if (!rows[0]?.min_date || !rows[0]?.max_date) {
+    return { minDate: null, maxDate: null };
+  }
+  const min = new Date(Number(rows[0].min_date));
+  const max = new Date(Number(rows[0].max_date));
+  // If same month/year, spread to full month
+  if (min.getFullYear() === max.getFullYear() && min.getMonth() === max.getMonth()) {
+    return {
+      minDate: new Date(min.getFullYear(), min.getMonth(), 1),
+      maxDate: new Date(min.getFullYear(), min.getMonth() + 1, 0),
+    };
+  }
+  return { minDate: min, maxDate: max };
+}
+
 interface InteractionQuery {
   dateFrom?: string;
   dateTo?: string;

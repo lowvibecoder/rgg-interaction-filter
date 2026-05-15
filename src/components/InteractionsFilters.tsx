@@ -22,6 +22,8 @@ interface FiltersProps {
   recipients: string[];
   actionTypes: string[];
   activePlayers: string[];
+  defaultMinDate: string | null;
+  defaultMaxDate: string | null;
 }
 
 export default function InteractionsFilters({
@@ -29,16 +31,23 @@ export default function InteractionsFilters({
   recipients,
   actionTypes,
   activePlayers,
+  defaultMinDate,
+  defaultMaxDate,
 }: FiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [dateFrom, setDateFrom] = useState<Date | null>(
-    searchParams.get("dateFrom") ? new Date(searchParams.get("dateFrom")!) : null
-  );
-  const [dateTo, setDateTo] = useState<Date | null>(
-    searchParams.get("dateTo") ? new Date(searchParams.get("dateTo")!) : null
-  );
+  const parsedDefaultMin = defaultMinDate ? new Date(defaultMinDate) : null;
+  const parsedDefaultMax = defaultMaxDate ? new Date(defaultMaxDate) : null;
+
+  const [dateFrom, setDateFrom] = useState<Date | null>(() => {
+    if (searchParams.get("dateFrom")) return new Date(searchParams.get("dateFrom")!);
+    return parsedDefaultMin;
+  });
+  const [dateTo, setDateTo] = useState<Date | null>(() => {
+    if (searchParams.get("dateTo")) return new Date(searchParams.get("dateTo")!);
+    return parsedDefaultMax;
+  });
   const [sender, setSender] = useState(searchParams.get("sender") || "");
   const [recipient, setRecipient] = useState(
     searchParams.get("recipient") || ""
@@ -71,15 +80,23 @@ export default function InteractionsFilters({
   };
 
   const clearFilters = () => {
-    setDateFrom(null);
-    setDateTo(null);
+    setDateFrom(parsedDefaultMin);
+    setDateTo(parsedDefaultMax);
     setSender("");
     setRecipient("");
     setAction("");
     setNote("");
     setActiveOnly(true);
-    router.push("?");
+    const params = new URLSearchParams();
+    if (parsedDefaultMin) params.set("dateFrom", parsedDefaultMin.toISOString().slice(0, 10));
+    if (parsedDefaultMax) params.set("dateTo", parsedDefaultMax.toISOString().slice(0, 10));
+    router.push(`?${params.toString()}`);
   };
+
+  const sameMonth =
+    parsedDefaultMin && parsedDefaultMax &&
+    parsedDefaultMin.getFullYear() === parsedDefaultMax.getFullYear() &&
+    parsedDefaultMin.getMonth() === parsedDefaultMax.getMonth();
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ru} localeText={ruRU.components.MuiLocalizationProvider.defaultProps.localeText}>
@@ -90,6 +107,11 @@ export default function InteractionsFilters({
             format="dd.MM.yyyy"
             value={dateFrom}
             onChange={(v) => setDateFrom(v)}
+            views={sameMonth ? ["day"] : undefined}
+            view={sameMonth ? "day" : undefined}
+            openTo={sameMonth ? "day" : undefined}
+            minDate={sameMonth ? parsedDefaultMin ?? undefined : undefined}
+            maxDate={sameMonth ? parsedDefaultMax ?? undefined : undefined}
             slotProps={{
               textField: { size: "small", sx: { minWidth: 160 } },
             }}
@@ -99,6 +121,11 @@ export default function InteractionsFilters({
             format="dd.MM.yyyy"
             value={dateTo}
             onChange={(v) => setDateTo(v)}
+            views={sameMonth ? ["day"] : undefined}
+            view={sameMonth ? "day" : undefined}
+            openTo={sameMonth ? "day" : undefined}
+            minDate={sameMonth ? parsedDefaultMin ?? undefined : undefined}
+            maxDate={sameMonth ? parsedDefaultMax ?? undefined : undefined}
             slotProps={{
               textField: { size: "small", sx: { minWidth: 160 } },
             }}
