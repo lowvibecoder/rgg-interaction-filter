@@ -94,6 +94,7 @@ export default function InteractionsFilters({
               textField: {
                 size: "small",
                 sx: { minWidth: 160 },
+                slotProps: { htmlInput: { placeholder: "дд.мм.гггг" } },
               },
             }}
           />
@@ -106,6 +107,7 @@ export default function InteractionsFilters({
               textField: {
                 size: "small",
                 sx: { minWidth: 160 },
+                slotProps: { htmlInput: { placeholder: "дд.мм.гггг" } },
               },
             }}
           />
