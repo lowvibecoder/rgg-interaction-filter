@@ -3,10 +3,15 @@ import { ACTIVE_PLAYERS } from "./players";
 
 const getSql = () => neon(process.env.POSTGRES_URL!);
 
-// Parse YYYY-MM-DD to UTC timestamp (noon-based to avoid timezone shifts)
-function dateUTC(y: number, m: number, d: number) { return Date.UTC(y, m - 1, d); }
-function dateFromStr(s: string): number { const [y,m,d]=s.split("-").map(Number); return dateUTC(y,m,d); }
-function dateToStr(s: string): number { const [y,m,d]=s.split("-").map(Number); return dateUTC(y,m,d+1) - 1; }
+// Convert YYYY-MM-DD to local midnight timestamp
+function dateFromStr(s: string): number {
+  const [y, m, d] = s.split("-").map(Number);
+  return Date.UTC(y, m - 1, d) + OFFSET;
+}
+function dateToStr(s: string): number {
+  const [y, m, d] = s.split("-").map(Number);
+  return Date.UTC(y, m - 1, d + 1) + OFFSET - 1;
+}
 
 export async function upsertInteraction(
   id: string,
@@ -142,16 +147,19 @@ export async function getDateRange() {
   if (!rows[0]?.min_date || !rows[0]?.max_date) {
     return { minDate: null, maxDate: null };
   }
-  const min = new Date(Number(rows[0].min_date));
-  const max = new Date(Number(rows[0].max_date));
-  // Use UTC methods to avoid timezone shift
-  if (min.getUTCFullYear() === max.getUTCFullYear() && min.getUTCMonth() === max.getUTCMonth()) {
+  const min = Number(rows[0].min_date);
+  const max = Number(rows[0].max_date);
+  // Shift by 12h to align with user's local date (works for any timezone +/-12h)
+const OFFSET = -new Date().getTimezoneOffset() * 60 * 1000; // local timezone offset in ms
+   const minD = new Date(min + OFFSET);
+   const maxD = new Date(max + OFFSET);
+  if (minD.getUTCFullYear() === maxD.getUTCFullYear() && minD.getUTCMonth() === maxD.getUTCMonth()) {
     return {
-      minDate: new Date(Date.UTC(min.getUTCFullYear(), min.getUTCMonth(), 1)),
-      maxDate: new Date(Date.UTC(min.getUTCFullYear(), min.getUTCMonth() + 1, 0, 23, 59, 59, 999)),
+      minDate: new Date(Date.UTC(minD.getUTCFullYear(), minD.getUTCMonth(), 1)),
+      maxDate: new Date(Date.UTC(minD.getUTCFullYear(), minD.getUTCMonth() + 1, 0, 23, 59, 59, 999)),
     };
   }
-  return { minDate: min, maxDate: max };
+  return { minDate: new Date(min), maxDate: new Date(max) };
 }
 
 interface InteractionQuery {
