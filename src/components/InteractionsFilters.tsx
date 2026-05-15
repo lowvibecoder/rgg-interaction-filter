@@ -9,11 +9,6 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { ru } from "date-fns/locale/ru";
-import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useMemo } from "react";
 
@@ -82,34 +77,31 @@ export default function InteractionsFilters({
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ru} localeText={ruRU.components.MuiLocalizationProvider.defaultProps.localeText}>
       <Stack spacing={2}>
         <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2 }}>
-          <DatePicker
+          <TextField
             label="Дата с"
-            format="dd.MM.yyyy"
-            value={dateFrom}
-            onChange={(v) => setDateFrom(v)}
-            slotProps={{
-              textField: {
-                size: "small",
-                sx: { minWidth: 160 },
-                slotProps: { htmlInput: { placeholder: "дд.мм.гггг" } },
-              },
+            type="date"
+            size="small"
+            slotProps={{ inputLabel: { shrink: true } }}
+            value={dateFrom ? dateFrom.toISOString().slice(0, 10) : ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setDateFrom(v ? new Date(v) : null);
             }}
+            sx={{ minWidth: 160 }}
           />
-          <DatePicker
+          <TextField
             label="Дата по"
-            format="dd.MM.yyyy"
-            value={dateTo}
-            onChange={(v) => setDateTo(v)}
-            slotProps={{
-              textField: {
-                size: "small",
-                sx: { minWidth: 160 },
-                slotProps: { htmlInput: { placeholder: "дд.мм.гггг" } },
-              },
+            type="date"
+            size="small"
+            slotProps={{ inputLabel: { shrink: true } }}
+            value={dateTo ? dateTo.toISOString().slice(0, 10) : ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setDateTo(v ? new Date(v) : null);
             }}
+            sx={{ minWidth: 160 }}
           />
           <Autocomplete
             options={filteredSenders}
@@ -170,6 +162,5 @@ export default function InteractionsFilters({
           </Button>
         </Stack>
       </Stack>
-    </LocalizationProvider>
   );
 }
