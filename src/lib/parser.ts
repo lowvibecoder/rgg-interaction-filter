@@ -11,16 +11,17 @@ function extractActionType(text: string): { actionType: string; note: string } {
 }
 
 export function parseRscPayload(html: string): RggInteraction[] {
-  // The RSC payload with actual data is the LAST occurrence in the HTML
-  const marker = '"interactions":[';
+  // The RSC payload has escaped quotes: \"interactions\":[{...
+  // Search for the LAST occurrence in the HTML
+  const marker = '\\"interactions\\":[';
   const startIdx = html.lastIndexOf(marker);
   if (startIdx === -1) return [];
 
-  // Find the array start - the `[` right after `"interactions":`
+  // Find JSON root array start - the `[` after `\"interactions\":`
   const jsonStart = startIdx + marker.length - 1;
   if (jsonStart >= html.length) return [];
 
-  // Parse JSON with bracket matching, accounting for escaped strings in the HTML
+  // Parse JSON with bracket matching through the escaped JS string
   let depth = 0;
   let endIdx = -1;
   let inString = false;
@@ -56,20 +57,19 @@ export function parseRscPayload(html: string): RggInteraction[] {
 
   let jsonStr = html.slice(jsonStart, endIdx);
 
-  // Clean up RSC special markers BEFORE un-escaping
+  // Clean up RSC special markers (before un-escaping)
   jsonStr = jsonStr
-    .replace(/\$D/g, "") // Date markers like $D2026-...
-    .replace(/\$L\d+/g, '"null"') // Lazy component markers like $L47
+    .replace(/\$D/g, "")
+    .replace(/\$L\d+/g, '"null"')
     .replace(/\$undefined/g, "null")
-    .replace(/\"\$[A-Z]\"/g, '""'); // Other RSC markers
+    .replace(/\$[A-Z]/g, "");
 
-  // Unescape JSON string (it's escaped inside the __next_f.push string)
+  // Unescape JSON (the data is inside a JS string in the HTML)
   jsonStr = jsonStr.replace(/\\"/g, '"').replace(/\\n/g, "\n").replace(/\\\//g, "/");
 
   try {
     const data = JSON.parse(jsonStr);
     const arr = Array.isArray(data) ? data : [];
-    // The data might be wrapped in an extra array: [[item1, item2]]
     if (arr.length === 1 && Array.isArray(arr[0])) return arr[0] as RggInteraction[];
     return arr as RggInteraction[];
   } catch {
