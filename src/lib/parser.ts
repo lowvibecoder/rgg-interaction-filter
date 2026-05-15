@@ -13,40 +13,19 @@ function extractActionType(text: string): { actionType: string; note: string } {
 }
 
 /**
- * Convert RSC-escaped string to a clean JSON string.
- * The data is inside a JS string literal within self.__next_f.push([1,"..."])
- * This requires TWO passes: JS string unescaping, then JSON unescaping.
+ * Convert JS-string-escaped data to valid JSON.
+ * Raw data is inside self.__next_f.push([1,"..."]), so it has
+ * JS escaping: \\ -> \, \" -> ". Leave \n, \t etc. for JSON.parse.
  */
 function cleanRscJson(raw: string): string {
-  // Pass 1: JS string literal unescaping
-  // \\\\ -> \\  (JS literal double-backslash -> JSON backslash)
-  // \\" -> \"   (JS literal escaped quote -> JSON escaped quote)
-  // \\n -> \n   (JS literal newline -> JSON newline)
-  // etc.
   let s = raw
-    .replace(/\\\\/g, "\x00")  // JS \\ -> temp marker
+    .replace(/\\\\/g, "\x00")  // JS \\ -> temp
     .replace(/\\"/g, '"')      // JS \" -> "
-    .replace(/\\n/g, "\n")     // JS \n -> newline
-    .replace(/\\r/g, "\r")     // JS \r -> CR
-    .replace(/\\t/g, "\t")     // JS \t -> tab
-    .replace(/\x00/g, "\\")    // temp marker -> JSON backslash
-    .replace(/\\\//g, "/");    // JS \/ -> /
-
-  // Pass 2: JSON unescaping (handles remaining escape sequences)
-  s = s
-    .replace(/\\"/g, '"')
-    .replace(/\\n/g, "\n")
-    .replace(/\\t/g, "\t")
-    .replace(/\\r/g, "\r")
-    .replace(/\\\\/g, "\\");
-
-  // Remove RSC markers
-  s = s
-    .replace(/\$D/g, "")
-    .replace(/\$L\d+/g, "null")
+    .replace(/\x00/g, "\\")    // temp -> \
+    .replace(/\$D/g, "")       // RSC Date markers
+    .replace(/\$L\d+/g, "null") // RSC Lazy refs
     .replace(/\$undefined/g, "null")
-    .replace(/\$[A-Z]/g, "");
-
+    .replace(/\$[A-Z]/g, "");   // Other RSC markers
   return s;
 }
 
