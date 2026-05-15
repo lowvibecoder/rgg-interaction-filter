@@ -1,7 +1,5 @@
 import type { RggInteraction, ParsedInteraction } from "./types";
 
-export let lastParseDebug = { found: 0, parsed: 0 };
-
 function extractActionType(text: string): { actionType: string; note: string } {
   const firstLineEnd = text.indexOf("\n");
   if (firstLineEnd === -1) {
@@ -47,8 +45,7 @@ export function parseRscPayload(html: string): RggInteraction[] {
   let inString = false;
   let escaped = false;
   let objectStart = -1;
-  let totalObjectsFound = 0;
-  let breakOnBracket = false;
+
 
   function tryParseObject(raw: string): RggInteraction | null {
     const cleaned = cleanRscJson(raw);
@@ -89,7 +86,6 @@ export function parseRscPayload(html: string): RggInteraction[] {
     if (ch === "{") {
       if (braceDepth === 0) {
         objectStart = pos;
-        totalObjectsFound++;
       }
       braceDepth++;
     } else if (ch === "}") {
@@ -107,7 +103,6 @@ export function parseRscPayload(html: string): RggInteraction[] {
     pos++;
   }
 
-  lastParseDebug = { found: totalObjectsFound, parsed: results.length };
   return results;
 }
 
