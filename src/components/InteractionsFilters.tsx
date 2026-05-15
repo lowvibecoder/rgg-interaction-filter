@@ -124,7 +124,7 @@ export default function InteractionsFilters({
             openTo={currentMonthSame ? "day" : undefined}
             minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
             maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{ textField: { size: "small", sx: { width: 115 } } }}
+            slotProps={{ textField: { size: "small", sx: { width: 130 } } }}
           />
           <DatePicker
             label="Дата по"
