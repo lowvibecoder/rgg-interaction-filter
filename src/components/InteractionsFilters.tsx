@@ -15,7 +15,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ru } from "date-fns/locale/ru";
 import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 
 interface FiltersProps {
   senders: string[];
@@ -26,6 +26,15 @@ interface FiltersProps {
   activePlayers: string[];
   defaultMinDate: string | null;
   defaultMaxDate: string | null;
+}
+
+function useDebounce(value: string, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
 }
 
 export default function InteractionsFilters({
@@ -44,23 +53,56 @@ export default function InteractionsFilters({
   const parsedDefaultMin = defaultMinDate ? new Date(defaultMinDate) : null;
   const parsedDefaultMax = defaultMaxDate ? new Date(defaultMaxDate) : null;
 
-  const [dateFrom, setDateFrom] = useState<Date | null>(() => {
-    if (searchParams.get("dateFrom")) return new Date(searchParams.get("dateFrom")!);
-    return parsedDefaultMin;
-  });
-  const [dateTo, setDateTo] = useState<Date | null>(() => {
-    if (searchParams.get("dateTo")) return new Date(searchParams.get("dateTo")!);
-    return parsedDefaultMax;
-  });
-  const [sender, setSender] = useState(searchParams.get("sender") || "");
-  const [recipient, setRecipient] = useState(
-    searchParams.get("recipient") || ""
+  const currentMonthSame =
+    parsedDefaultMin && parsedDefaultMax &&
+    parsedDefaultMin.getFullYear() === parsedDefaultMax.getFullYear() &&
+    parsedDefaultMin.getMonth() === parsedDefaultMax.getMonth();
+
+  const buildParams = useCallback(
+    (overrides: Record<string, string | null>) => {
+      const p = new URLSearchParams(searchParams.toString());
+      for (const [key, val] of Object.entries(overrides)) {
+        if (val === null || val === "") p.delete(key);
+        else p.set(key, val);
+      }
+      return p;
+    },
+    [searchParams]
   );
-  const [action, setAction] = useState(searchParams.get("action") || "");
-  const [note, setNote] = useState(searchParams.get("note") || "");
-  const [activeOnly, setActiveOnly] = useState(
-    searchParams.get("activeOnly") !== "false"
+
+  const navigate = useCallback(
+    (overrides: Record<string, string | null>) => {
+      router.push(`?${buildParams(overrides).toString()}`);
+    },
+    [router, buildParams]
   );
+
+  // Read current values from URL for initial state
+  const urlDateFrom = searchParams.get("dateFrom");
+  const urlDateTo = searchParams.get("dateTo");
+  const urlSender = searchParams.get("sender") || "";
+  const urlRecipient = searchParams.get("recipient") || "";
+  const urlAction = searchParams.get("action") || "";
+  const urlNote = searchParams.get("note") || "";
+  const urlActiveOnly = searchParams.get("activeOnly") !== "false";
+
+  // Local state for note (debounced)
+  const [noteInput, setNoteInput] = useState(urlNote);
+  const debouncedNote = useDebounce(noteInput, 400);
+
+  // Sync debounced note to URL
+  useEffect(() => {
+    if (debouncedNote !== urlNote) {
+      navigate({ note: debouncedNote || null });
+    }
+  }, [debouncedNote]);
+
+  // Re-sync when URL changes externally
+  useEffect(() => {
+    setNoteInput(urlNote);
+  }, [urlNote]);
+
+  const activeOnly = urlActiveOnly;
 
   const filteredSenders = useMemo(
     () => (activeOnly ? senders.filter((s) => activePlayers.includes(s)) : senders),
@@ -75,36 +117,17 @@ export default function InteractionsFilters({
     [allActionTypes, activeActionTypes, activeOnly]
   );
 
-  const applyFilters = () => {
-    const params = new URLSearchParams();
-    if (dateFrom) params.set("dateFrom", dateFrom.toISOString().slice(0, 10));
-    if (dateTo) params.set("dateTo", dateTo.toISOString().slice(0, 10));
-    if (sender) params.set("sender", sender);
-    if (recipient) params.set("recipient", recipient);
-    if (action) params.set("action", action);
-    if (note) params.set("note", note);
-    params.set("activeOnly", String(activeOnly));
-    router.push(`?${params.toString()}`);
-  };
+  const dateFrom = urlDateFrom ? new Date(urlDateFrom) : parsedDefaultMin;
+  const dateTo = urlDateTo ? new Date(urlDateTo) : parsedDefaultMax;
 
   const clearFilters = () => {
-    setDateFrom(parsedDefaultMin);
-    setDateTo(parsedDefaultMax);
-    setSender("");
-    setRecipient("");
-    setAction("");
-    setNote("");
-    setActiveOnly(true);
+    setNoteInput("");
     const params = new URLSearchParams();
     if (parsedDefaultMin) params.set("dateFrom", parsedDefaultMin.toISOString().slice(0, 10));
     if (parsedDefaultMax) params.set("dateTo", parsedDefaultMax.toISOString().slice(0, 10));
+    params.set("activeOnly", "true");
     router.push(`?${params.toString()}`);
   };
-
-  const sameMonth =
-    parsedDefaultMin && parsedDefaultMax &&
-    parsedDefaultMin.getFullYear() === parsedDefaultMax.getFullYear() &&
-    parsedDefaultMin.getMonth() === parsedDefaultMax.getMonth();
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ru} localeText={ruRU.components.MuiLocalizationProvider.defaultProps.localeText}>
@@ -114,34 +137,30 @@ export default function InteractionsFilters({
             label="Дата с"
             format="dd.MM.yyyy"
             value={dateFrom}
-            onChange={(v) => setDateFrom(v)}
-            views={sameMonth ? ["day"] : undefined}
-            view={sameMonth ? "day" : undefined}
-            openTo={sameMonth ? "day" : undefined}
-            minDate={sameMonth ? parsedDefaultMin ?? undefined : undefined}
-            maxDate={sameMonth ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{
-              textField: { size: "small", sx: { minWidth: 160 } },
-            }}
+            onChange={(v) => navigate({ dateFrom: v ? v.toISOString().slice(0, 10) : null })}
+            views={currentMonthSame ? ["day"] : undefined}
+            view={currentMonthSame ? "day" : undefined}
+            openTo={currentMonthSame ? "day" : undefined}
+            minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
+            maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
+            slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
           />
           <DatePicker
             label="Дата по"
             format="dd.MM.yyyy"
             value={dateTo}
-            onChange={(v) => setDateTo(v)}
-            views={sameMonth ? ["day"] : undefined}
-            view={sameMonth ? "day" : undefined}
-            openTo={sameMonth ? "day" : undefined}
-            minDate={sameMonth ? parsedDefaultMin ?? undefined : undefined}
-            maxDate={sameMonth ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{
-              textField: { size: "small", sx: { minWidth: 160 } },
-            }}
+            onChange={(v) => navigate({ dateTo: v ? v.toISOString().slice(0, 10) : null })}
+            views={currentMonthSame ? ["day"] : undefined}
+            view={currentMonthSame ? "day" : undefined}
+            openTo={currentMonthSame ? "day" : undefined}
+            minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
+            maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
+            slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
           />
           <Autocomplete
             options={filteredSenders}
-            value={sender || null}
-            onChange={(_, v) => setSender(v || "")}
+            value={urlSender || null}
+            onChange={(_, v) => navigate({ sender: v || null })}
             renderInput={(params) => (
               <TextField {...params} label="От кого" size="small" sx={{ minWidth: 180 }} />
             )}
@@ -150,8 +169,8 @@ export default function InteractionsFilters({
           />
           <Autocomplete
             options={filteredRecipients}
-            value={recipient || null}
-            onChange={(_, v) => setRecipient(v || "")}
+            value={urlRecipient || null}
+            onChange={(_, v) => navigate({ recipient: v || null })}
             renderInput={(params) => (
               <TextField {...params} label="Кому" size="small" sx={{ minWidth: 180 }} />
             )}
@@ -162,8 +181,8 @@ export default function InteractionsFilters({
             select
             label="Действие"
             size="small"
-            value={action}
-            onChange={(e) => setAction(e.target.value)}
+            value={urlAction}
+            onChange={(e) => navigate({ action: e.target.value || null })}
             sx={{ minWidth: 160 }}
           >
             <MenuItem value="">Все</MenuItem>
@@ -177,9 +196,7 @@ export default function InteractionsFilters({
             control={
               <Checkbox
                 checked={activeOnly}
-                onChange={(e) => {
-                  setActiveOnly(e.target.checked);
-                }}
+                onChange={(e) => navigate({ activeOnly: e.target.checked ? "true" : "false" })}
               />
             }
             label="Только активные игроки"
@@ -187,13 +204,10 @@ export default function InteractionsFilters({
           <TextField
             label="Поиск в тексте"
             size="small"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
+            value={noteInput}
+            onChange={(e) => setNoteInput(e.target.value)}
             sx={{ minWidth: 200 }}
           />
-          <Button variant="contained" onClick={applyFilters}>
-            Применить
-          </Button>
           <Button variant="outlined" onClick={clearFilters}>
             Сбросить
           </Button>
