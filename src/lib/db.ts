@@ -320,3 +320,11 @@ export async function getPlayersByInventoryItem(itemName: string): Promise<{
     ORDER BY player_name
   ` as { player_name: string; item_type: string; total_quantity: number }[];
 }
+
+export async function getInventoryLastUpdated(): Promise<Date | null> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT MAX(updated_at) as last_update FROM player_items
+  ` as { last_update: Date | null }[];
+  return rows[0]?.last_update || null;
+}

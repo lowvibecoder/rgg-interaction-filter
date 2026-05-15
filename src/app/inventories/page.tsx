@@ -1,7 +1,8 @@
 import { Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from "@mui/material";
 import type { Metadata } from "next";
-import { getInventoryItems, getPlayersByInventoryItem, getGameItems } from "@/lib/db";
+import { getInventoryItems, getPlayersByInventoryItem, getGameItems, getInventoryLastUpdated } from "@/lib/db";
 import InventoryFilter from "@/components/InventoryFilter";
+import AutoRefresh from "@/components/AutoRefresh";
 
 export const metadata: Metadata = {
   title: "Инвентари | RGG",
@@ -13,7 +14,7 @@ interface PageProps {
 
 export default async function InventoriesPage({ searchParams }: PageProps) {
   const { item } = await searchParams;
-  const [allItems, gameItems] = await Promise.all([getInventoryItems(), getGameItems()]);
+  const [allItems, gameItems, lastUpdated] = await Promise.all([getInventoryItems(), getGameItems(), getInventoryLastUpdated()]);
 
   const gameItemMap = new Map<string, { description: string; source: string }>();
   for (const gi of gameItems) {
@@ -25,9 +26,17 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-        Инвентари
-      </Typography>
+      <AutoRefresh />
+      <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Инвентари
+        </Typography>
+        {lastUpdated && (
+          <Typography variant="caption" color="text.secondary">
+            обновлено: {new Date(lastUpdated).toLocaleTimeString("ru-RU")}
+          </Typography>
+        )}
+      </Box>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <Box>
           <InventoryFilter items={allItems} />
