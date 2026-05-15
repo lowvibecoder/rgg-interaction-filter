@@ -33,7 +33,7 @@ export default function RootLayout({
             <AutoRefresh />
             <Box sx={{ display: "flex", minHeight: "100vh" }}>
               <Sidebar />
-              <Box sx={{ flex: 1, overflow: "auto", p: 0 }}>
+              <Box sx={{ flex: 1, overflow: "auto", p: 0, minHeight: "100vh" }}>
                 {children}
               </Box>
             </Box>
