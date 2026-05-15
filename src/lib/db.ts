@@ -298,8 +298,19 @@ export async function getGameItems(): Promise<GameItemRecord[]> {
   `) as GameItemRecord[];
 }
 
-export async function getInventoryItems(): Promise<string[]> {
+export async function getInventoryItems(searchTerm?: string): Promise<string[]> {
   const sql = getSql();
+  if (searchTerm) {
+    const rows = await sql`
+      SELECT DISTINCT pi.item_name
+      FROM player_items pi
+      LEFT JOIN game_items gi ON gi.name = pi.item_name
+      WHERE pi.item_name ILIKE ${'%' + searchTerm + '%'}
+         OR gi.description ILIKE ${'%' + searchTerm + '%'}
+      ORDER BY pi.item_name
+    ` as { item_name: string }[];
+    return rows.map(r => r.item_name);
+  }
   const rows = await sql`
     SELECT DISTINCT item_name FROM player_items ORDER BY item_name
   ` as { item_name: string }[];

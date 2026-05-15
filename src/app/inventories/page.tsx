@@ -1,7 +1,8 @@
-import { Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from "@mui/material";
+import { Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, TextField } from "@mui/material";
 import type { Metadata } from "next";
 import { getInventoryItems, getPlayersByInventoryItem, getGameItems, getInventoryLastUpdated } from "@/lib/db";
 import InventoryFilter from "@/components/InventoryFilter";
+import InventorySearch from "@/components/InventorySearch";
 import LiveTimestamp from "@/components/LiveTimestamp";
 
 export const metadata: Metadata = {
@@ -9,12 +10,16 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ item?: string }>;
+  searchParams: Promise<{ item?: string; q?: string }>;
 }
 
 export default async function InventoriesPage({ searchParams }: PageProps) {
-  const { item } = await searchParams;
-  const [allItems, gameItems, lastUpdated] = await Promise.all([getInventoryItems(), getGameItems(), getInventoryLastUpdated()]);
+  const { item, q } = await searchParams;
+  const [allItems, gameItems, lastUpdated] = await Promise.all([
+    getInventoryItems(q || undefined),
+    getGameItems(),
+    getInventoryLastUpdated(),
+  ]);
 
   const gameItemMap = new Map<string, { description: string; source: string }>();
   for (const gi of gameItems) {
@@ -33,7 +38,8 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
         <LiveTimestamp date={lastUpdated?.toISOString() ?? null} />
       </Box>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <Box>
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <InventorySearch />
           <InventoryFilter items={allItems} />
         </Box>
         {item && (
