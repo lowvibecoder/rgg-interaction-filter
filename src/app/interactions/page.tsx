@@ -1,6 +1,7 @@
 import { Typography, Stack, Box } from "@mui/material";
 import InteractionsFilters from "@/components/InteractionsFilters";
 import InteractionsTable from "@/components/InteractionsTable";
+import LiveTimestamp from "@/components/LiveTimestamp";
 import {
   getInteractions,
   getSenders,
@@ -8,6 +9,7 @@ import {
   getActionTypes,
   getDateRange,
   getGameItems,
+  getInteractionsLastUpdated,
 } from "@/lib/db";
 
 interface PageProps {
@@ -32,7 +34,7 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
     activeOnly: params.activeOnly !== "false",
   };
 
-  const [senders, recipients, actionTypes, interactionData, dateRange, gameItems] =
+  const [senders, recipients, actionTypes, interactionData, dateRange, gameItems, lastUpdated] =
     await Promise.all([
       getSenders({ ...baseFilters, recipient: params.recipient, action: params.action }),
       getRecipients({ ...baseFilters, sender: params.sender, action: params.action }),
@@ -46,6 +48,7 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
       }),
       getDateRange(),
       getGameItems(),
+      getInteractionsLastUpdated(),
     ]);
 
   const gameItemMap = new Map<string, { description: string; source: string }>();
@@ -56,7 +59,8 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-        Взаимодействия
+        Взаимодействия{" "}
+        <LiveTimestamp date={lastUpdated?.toISOString() ?? null} label="обновлено" />
       </Typography>
       <Stack spacing={3}>
         <InteractionsFilters

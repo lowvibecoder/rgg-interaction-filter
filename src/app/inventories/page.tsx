@@ -2,6 +2,7 @@ import { Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead
 import type { Metadata } from "next";
 import { getInventoryItems, getPlayersByInventoryItem, getGameItems, getInventoryLastUpdated } from "@/lib/db";
 import InventoryFilter from "@/components/InventoryFilter";
+import LiveTimestamp from "@/components/LiveTimestamp";
 
 export const metadata: Metadata = {
   title: "Инвентари | RGG",
@@ -25,15 +26,11 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
-      <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
           Инвентари
         </Typography>
-        {lastUpdated && (
-          <Typography variant="caption" color="text.secondary">
-            обновлено: {new Date(lastUpdated).toLocaleTimeString("ru-RU")}
-          </Typography>
-        )}
+        <LiveTimestamp date={lastUpdated?.toISOString() ?? null} />
       </Box>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <Box>

@@ -328,3 +328,11 @@ export async function getInventoryLastUpdated(): Promise<Date | null> {
   ` as { last_update: Date | null }[];
   return rows[0]?.last_update || null;
 }
+
+export async function getInteractionsLastUpdated(): Promise<Date | null> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT MAX(fetched_at) as last_update FROM interactions
+  ` as { last_update: Date | null }[];
+  return rows[0]?.last_update || null;
+}
