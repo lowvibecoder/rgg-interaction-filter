@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   for (const player of ACTIVE_PLAYERS) {
     try {
-      const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player)}`);
+      const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`);
       const html = await res.text();
       const items = parseInventoryPage(html, player);
       allItems.push(...items);
