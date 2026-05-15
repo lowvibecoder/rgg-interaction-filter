@@ -7,6 +7,7 @@ import {
   getRecipients,
   getActionTypes,
 } from "@/lib/db";
+import { ACTIVE_PLAYERS } from "@/lib/players";
 
 interface PageProps {
   searchParams: Promise<{
@@ -16,6 +17,7 @@ interface PageProps {
     recipient?: string;
     action?: string;
     note?: string;
+    activeOnly?: string;
     page?: string;
     pageSize?: string;
   }>;
@@ -36,6 +38,7 @@ export default async function Home({ searchParams }: PageProps) {
         recipient: params.recipient,
         action: params.action,
         note: params.note,
+        activeOnly: params.activeOnly !== "false",
         page: params.page ? Number(params.page) : 1,
         pageSize: params.pageSize ? Number(params.pageSize) : 50,
       }),
@@ -59,6 +62,7 @@ export default async function Home({ searchParams }: PageProps) {
           senders={senders.map((s) => s.sender_name)}
           recipients={recipients.map((r) => r.recipient_name)}
           actionTypes={actionTypes.map((a) => a.action_type)}
+          activePlayers={ACTIVE_PLAYERS}
         />
         <InteractionsTable
           rows={interactionData.rows}

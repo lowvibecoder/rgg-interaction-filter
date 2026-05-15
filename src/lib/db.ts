@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { ACTIVE_PLAYERS } from "./players";
 
 const getSql = () => neon(process.env.POSTGRES_URL!);
 
@@ -71,6 +72,7 @@ interface InteractionQuery {
   recipient?: string;
   action?: string;
   note?: string;
+  activeOnly?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -117,6 +119,11 @@ export async function getInteractions(query: InteractionQuery) {
     conditions.push(`i.raw_text ILIKE $${paramIndex++}`);
     params.push(`%${query.note}%`);
   }
+  if (query.activeOnly) {
+    const placeholders = ACTIVE_PLAYERS.map((_, i) => `$${paramIndex++}`).join(",");
+    conditions.push(`i.sender_name IN (${placeholders})`);
+    params.push(...ACTIVE_PLAYERS);
+  }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
   const page = query.page || 1;
@@ -137,14 +144,13 @@ export async function getInteractions(query: InteractionQuery) {
     [...params, pageSize, offset]
   )) as any[];
 
-  const countParams = params.slice(0, -2);
   const countQueryStr = `
     SELECT COUNT(DISTINCT i.id) as total
     FROM interactions i
     ${query.recipient ? "JOIN interaction_recipients ir ON ir.interaction_id = i.id" : ""}
     ${where}
   `;
-  const countResult = (await sql.query(countQueryStr, countParams)) as any[];
+  const countResult = (await sql.query(countQueryStr, params)) as any[];
 
   const total = Number(countResult[0]?.total || 0);
 

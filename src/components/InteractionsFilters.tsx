@@ -6,20 +6,24 @@ import {
   Stack,
   Button,
   Autocomplete,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface FiltersProps {
   senders: string[];
   recipients: string[];
   actionTypes: string[];
+  activePlayers: string[];
 }
 
 export default function InteractionsFilters({
   senders,
   recipients,
   actionTypes,
+  activePlayers,
 }: FiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,6 +36,9 @@ export default function InteractionsFilters({
   );
   const [action, setAction] = useState(searchParams.get("action") || "");
   const [note, setNote] = useState(searchParams.get("note") || "");
+  const [activeOnly, setActiveOnly] = useState(
+    searchParams.get("activeOnly") !== "false"
+  );
 
   const applyFilters = () => {
     const params = new URLSearchParams();
@@ -41,6 +48,7 @@ export default function InteractionsFilters({
     if (recipient) params.set("recipient", recipient);
     if (action) params.set("action", action);
     if (note) params.set("note", note);
+    params.set("activeOnly", String(activeOnly));
     router.push(`?${params.toString()}`);
   };
 
@@ -51,6 +59,7 @@ export default function InteractionsFilters({
     setRecipient("");
     setAction("");
     setNote("");
+    setActiveOnly(true);
     router.push("?");
   };
 
@@ -118,7 +127,16 @@ export default function InteractionsFilters({
           sx={{ minWidth: 200 }}
         />
       </Stack>
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={activeOnly}
+              onChange={(e) => setActiveOnly(e.target.checked)}
+            />
+          }
+          label="Только активные игроки"
+        />
         <Button variant="contained" onClick={applyFilters}>
           Применить
         </Button>
