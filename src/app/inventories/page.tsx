@@ -1,6 +1,11 @@
 import { Typography, Box, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from "@mui/material";
+import type { Metadata } from "next";
 import { getInventoryItems, getPlayersByInventoryItem } from "@/lib/db";
 import InventoryFilter from "@/components/InventoryFilter";
+
+export const metadata: Metadata = {
+  title: "Инвентари | RGG",
+};
 
 interface PageProps {
   searchParams: Promise<{ item?: string }>;
