@@ -9,6 +9,11 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { ru } from "date-fns/locale/ru";
+import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -28,8 +33,12 @@ export default function InteractionsFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [dateFrom, setDateFrom] = useState(searchParams.get("dateFrom") || "");
-  const [dateTo, setDateTo] = useState(searchParams.get("dateTo") || "");
+  const [dateFrom, setDateFrom] = useState<Date | null>(
+    searchParams.get("dateFrom") ? new Date(searchParams.get("dateFrom")!) : null
+  );
+  const [dateTo, setDateTo] = useState<Date | null>(
+    searchParams.get("dateTo") ? new Date(searchParams.get("dateTo")!) : null
+  );
   const [sender, setSender] = useState(searchParams.get("sender") || "");
   const [recipient, setRecipient] = useState(
     searchParams.get("recipient") || ""
@@ -42,8 +51,8 @@ export default function InteractionsFilters({
 
   const applyFilters = () => {
     const params = new URLSearchParams();
-    if (dateFrom) params.set("dateFrom", dateFrom);
-    if (dateTo) params.set("dateTo", dateTo);
+    if (dateFrom) params.set("dateFrom", dateFrom.toISOString().slice(0, 10));
+    if (dateTo) params.set("dateTo", dateTo.toISOString().slice(0, 10));
     if (sender) params.set("sender", sender);
     if (recipient) params.set("recipient", recipient);
     if (action) params.set("action", action);
@@ -53,8 +62,8 @@ export default function InteractionsFilters({
   };
 
   const clearFilters = () => {
-    setDateFrom("");
-    setDateTo("");
+    setDateFrom(null);
+    setDateTo(null);
     setSender("");
     setRecipient("");
     setAction("");
@@ -64,88 +73,82 @@ export default function InteractionsFilters({
   };
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2 }}>
-        <TextField
-          label="Дата с"
-          type="date"
-          size="small"
-          slotProps={{ inputLabel: { shrink: true } }}
-          placeholder="ДД.ММ.ГГГГ"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          sx={{ minWidth: 160, "& input": { fontFamily: "inherit" } }}
-        />
-        <TextField
-          label="Дата по"
-          type="date"
-          size="small"
-          slotProps={{ inputLabel: { shrink: true } }}
-          placeholder="ДД.ММ.ГГГГ"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          sx={{ minWidth: 160, "& input": { fontFamily: "inherit" } }}
-        />
-        <Autocomplete
-          options={senders}
-          value={sender || null}
-          onChange={(_, v) => setSender(v || "")}
-          renderInput={(params) => (
-            <TextField {...params} label="От кого" size="small" sx={{ minWidth: 180 }} />
-          )}
-          size="small"
-          sx={{ minWidth: 180 }}
-        />
-        <Autocomplete
-          options={recipients}
-          value={recipient || null}
-          onChange={(_, v) => setRecipient(v || "")}
-          renderInput={(params) => (
-            <TextField {...params} label="Кому" size="small" sx={{ minWidth: 180 }} />
-          )}
-          size="small"
-          sx={{ minWidth: 180 }}
-        />
-        <TextField
-          select
-          label="Действие"
-          size="small"
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="">Все</MenuItem>
-          {actionTypes.map((a) => (
-            <MenuItem key={a} value={a}>
-              {a}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          label="Поиск в тексте"
-          size="small"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          sx={{ minWidth: 200 }}
-        />
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ru} localeText={ruRU.components.MuiLocalizationProvider.defaultProps.localeText}>
+      <Stack spacing={2}>
+        <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2 }}>
+          <DatePicker
+            label="Дата с"
+            value={dateFrom}
+            onChange={(v) => setDateFrom(v)}
+            slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
+          />
+          <DatePicker
+            label="Дата по"
+            value={dateTo}
+            onChange={(v) => setDateTo(v)}
+            slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
+          />
+          <Autocomplete
+            options={senders}
+            value={sender || null}
+            onChange={(_, v) => setSender(v || "")}
+            renderInput={(params) => (
+              <TextField {...params} label="От кого" size="small" sx={{ minWidth: 180 }} />
+            )}
+            size="small"
+            sx={{ minWidth: 180 }}
+          />
+          <Autocomplete
+            options={recipients}
+            value={recipient || null}
+            onChange={(_, v) => setRecipient(v || "")}
+            renderInput={(params) => (
+              <TextField {...params} label="Кому" size="small" sx={{ minWidth: 180 }} />
+            )}
+            size="small"
+            sx={{ minWidth: 180 }}
+          />
+          <TextField
+            select
+            label="Действие"
+            size="small"
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="">Все</MenuItem>
+            {actionTypes.map((a) => (
+              <MenuItem key={a} value={a}>
+                {a}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Поиск в тексте"
+            size="small"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            sx={{ minWidth: 200 }}
+          />
+        </Stack>
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={activeOnly}
+                onChange={(e) => setActiveOnly(e.target.checked)}
+              />
+            }
+            label="Только активные игроки"
+          />
+          <Button variant="contained" onClick={applyFilters}>
+            Применить
+          </Button>
+          <Button variant="outlined" onClick={clearFilters}>
+            Сбросить
+          </Button>
+        </Stack>
       </Stack>
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={activeOnly}
-              onChange={(e) => setActiveOnly(e.target.checked)}
-            />
-          }
-          label="Только активные игроки"
-        />
-        <Button variant="contained" onClick={applyFilters}>
-          Применить
-        </Button>
-        <Button variant="outlined" onClick={clearFilters}>
-          Сбросить
-        </Button>
-      </Stack>
-    </Stack>
+    </LocalizationProvider>
   );
 }

@@ -1,22 +1,16 @@
 "use client";
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Paper,
   Chip,
   Stack,
   Typography,
+  Paper,
+  Box,
 } from "@mui/material";
+import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
 import updateLocale from "dayjs/plugin/updateLocale";
-import { useSearchParams, useRouter } from "next/navigation";
 import type { ParsedInteractionWithRecipients } from "@/lib/types";
 
 dayjs.extend(updateLocale);
@@ -35,8 +29,6 @@ dayjs.updateLocale("ru", {
 interface TableProps {
   rows: ParsedInteractionWithRecipients[];
   total: number;
-  page: number;
-  pageSize: number;
 }
 
 const actionColors: Record<string, string> = {
@@ -57,101 +49,102 @@ function getActionColor(action: string): string {
   return "#757575";
 }
 
-export default function InteractionsTable({
-  rows,
-  total,
-  page,
-  pageSize,
-}: TableProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+function InteractionRow({ item }: { item: ParsedInteractionWithRecipients }) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        gap: 2,
+        px: 2,
+        py: 1.5,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        "&:hover": { bgcolor: "action.hover" },
+      }}
+    >
+      <Typography
+        variant="body2"
+        sx={{ minWidth: 120, whiteSpace: "nowrap", color: "text.secondary" }}
+      >
+        {dayjs(Number(item.date_added)).format("DD MMM YYYY HH:mm")}
+      </Typography>
+      <Typography variant="body2" sx={{ minWidth: 120 }}>
+        {item.sender_name}
+      </Typography>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        sx={{ flexWrap: "wrap", gap: 0.5, minWidth: 150, flex: 1 }}
+      >
+        {item.recipients.map((r) => (
+          <Chip
+            key={r.recipient_name}
+            label={r.recipient_name}
+            size="small"
+            variant="outlined"
+          />
+        ))}
+      </Stack>
+      <Box sx={{ minWidth: 120 }}>
+        <Chip
+          label={item.action_type}
+          size="small"
+          sx={{
+            backgroundColor: getActionColor(item.action_type),
+            color: "#fff",
+            fontWeight: 600,
+          }}
+        />
+      </Box>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ whiteSpace: "pre-line", minWidth: 200, flex: 2 }}
+      >
+        {item.note || ""}
+      </Typography>
+    </Box>
+  );
+}
 
-  const handleChangePage = (_: unknown, newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage + 1));
-    router.push(`?${params.toString()}`);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("pageSize", event.target.value);
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  };
-
+export default function InteractionsTable({ rows, total }: TableProps) {
   return (
     <Paper>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Дата</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>От кого</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Кому</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Действие</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Примечание</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.id} hover>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {dayjs(Number(row.date_added)).format("DD MMM YYYY HH:mm")}
-                </TableCell>
-                <TableCell>{row.sender_name}</TableCell>
-                <TableCell>
-                  <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-                    {row.recipients.map((r) => (
-                      <Chip
-                        key={r.recipient_name}
-                        label={r.recipient_name}
-                        size="small"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Stack>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={row.action_type}
-                    size="small"
-                    sx={{
-                      backgroundColor: getActionColor(row.action_type),
-                      color: "#fff",
-                      fontWeight: 600,
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
-                    {row.note || ""}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                  Нет взаимодействий
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        count={total}
-        page={page - 1}
-        rowsPerPage={pageSize}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[25, 50, 100]}
-        labelRowsPerPage="На странице:"
-        labelDisplayedRows={({ from, to, count }) =>
-          `${from}–${to} из ${count}`
-        }
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          px: 2,
+          py: 1,
+          borderBottom: 2,
+          borderColor: "divider",
+          bgcolor: "action.hover",
+          fontWeight: 700,
+          fontSize: "0.875rem",
+        }}
+      >
+        <Box sx={{ minWidth: 120 }}>Дата</Box>
+        <Box sx={{ minWidth: 120 }}>От кого</Box>
+        <Box sx={{ minWidth: 150, flex: 1 }}>Кому</Box>
+        <Box sx={{ minWidth: 120 }}>Действие</Box>
+        <Box sx={{ minWidth: 200, flex: 2 }}>Примечание</Box>
+      </Box>
+      <Virtuoso
+        style={{ height: "70vh" }}
+        data={rows}
+        totalCount={rows.length}
+        itemContent={(_, item) => <InteractionRow item={item} />}
+        components={{
+          Footer: () => (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center", py: 2 }}
+            >
+              Всего: {total}
+            </Typography>
+          ),
+        }}
       />
     </Paper>
   );

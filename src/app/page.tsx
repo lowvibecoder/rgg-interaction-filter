@@ -18,8 +18,6 @@ interface PageProps {
     action?: string;
     note?: string;
     activeOnly?: string;
-    page?: string;
-    pageSize?: string;
   }>;
 }
 
@@ -39,8 +37,7 @@ export default async function Home({ searchParams }: PageProps) {
         action: params.action,
         note: params.note,
         activeOnly: params.activeOnly !== "false",
-        page: params.page ? Number(params.page) : 1,
-        pageSize: params.pageSize ? Number(params.pageSize) : 50,
+        pageSize: 10000,
       }),
     ]);
 
@@ -50,14 +47,6 @@ export default async function Home({ searchParams }: PageProps) {
         Взаимодействия
       </Typography>
       <Stack spacing={3}>
-        <Stack
-          direction="row"
-          sx={{ justifyContent: "space-between", alignItems: "center" }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            Всего: {interactionData.total}
-          </Typography>
-        </Stack>
         <InteractionsFilters
           senders={senders.map((s) => s.sender_name)}
           recipients={recipients.map((r) => r.recipient_name)}
@@ -67,8 +56,6 @@ export default async function Home({ searchParams }: PageProps) {
         <InteractionsTable
           rows={interactionData.rows}
           total={interactionData.total}
-          page={interactionData.page}
-          pageSize={interactionData.pageSize}
         />
       </Stack>
     </Box>
