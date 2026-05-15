@@ -3,10 +3,12 @@ name: Parse RGG Interactions
 on:
   schedule:
     - cron: "* * * * *"
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 jobs:
   parse:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '* * * * *'
     runs-on: ubuntu-latest
     steps:
       - name: Parse interactions
@@ -16,9 +18,8 @@ jobs:
             -H "Content-Type: application/json"
 
   parse-game-data:
+    if: github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    schedule:
-      - cron: "0 6 * * *"
     steps:
       - name: Parse game data (wheels, items, rolls, effects, events)
         run: |
