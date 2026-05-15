@@ -65,13 +65,9 @@ export function parseRscPayload(html: string): RggInteraction[] {
     return [];
   }
 }
-    } catch {
-      // skip invalid objects
-    }
-    return null;
+    // (old object parsing removed – not needed with new payload extraction)
   }
 
-  while (pos < html.length) {
     const ch = html[pos];
 
     if (escaped) {
