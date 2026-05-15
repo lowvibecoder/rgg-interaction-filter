@@ -66,11 +66,11 @@ export default function InteractionsTable({ rows, total }: TableProps) {
           zIndex: 10,
         }}
       >
-        <Box sx={{ minWidth: 56 }}>Дата</Box>
-        <Box sx={{ minWidth: 120 }}>От кого</Box>
-        <Box sx={{ minWidth: 150, flex: 1 }}>Кому</Box>
-        <Box sx={{ minWidth: 130 }}>Действие</Box>
-        <Box sx={{ minWidth: 200, flex: 2 }}>Примечание</Box>
+        <Box sx={{ width: 70, flexShrink: 0 }}>Дата</Box>
+        <Box sx={{ width: 120, flexShrink: 0 }}>От кого</Box>
+        <Box sx={{ width: 200, flexShrink: 0 }}>Кому</Box>
+        <Box sx={{ width: 150, flexShrink: 0 }}>Действие</Box>
+        <Box sx={{ minWidth: 200 }}>Примечание</Box>
       </Box>
       {rows.map((row) => (
         <Box
@@ -87,19 +87,19 @@ export default function InteractionsTable({ rows, total }: TableProps) {
         >
           <Typography
             variant="body2"
-            sx={{ minWidth: 60, whiteSpace: "nowrap", color: "text.secondary", lineHeight: 1.3 }}
+            sx={{ width: 70, flexShrink: 0, whiteSpace: "nowrap", color: "text.secondary", lineHeight: 1.3 }}
           >
             {dayjs(Number(row.date_added)).format("DD.MM")}
             <br />
             {dayjs(Number(row.date_added)).format("HH:mm")}
           </Typography>
-          <Typography variant="body2" sx={{ minWidth: 120 }}>
+          <Typography variant="body2" sx={{ width: 120, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
             {row.sender_name}
           </Typography>
           <Stack
             direction="row"
             spacing={0.5}
-            sx={{ flexWrap: "wrap", gap: 0.5, minWidth: 150, flex: 1 }}
+            sx={{ flexWrap: "wrap", gap: 0.5, width: 200, flexShrink: 0 }}
           >
             {row.recipients.map((r) => (
               <Chip
@@ -110,7 +110,7 @@ export default function InteractionsTable({ rows, total }: TableProps) {
               />
             ))}
           </Stack>
-          <Box sx={{ minWidth: 130, maxWidth: 200 }}>
+          <Box sx={{ width: 150, flexShrink: 0 }}>
             <Typography
               variant="caption"
               sx={{
@@ -133,7 +133,7 @@ export default function InteractionsTable({ rows, total }: TableProps) {
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ whiteSpace: "pre-line", minWidth: 200, flex: 2 }}
+            sx={{ whiteSpace: "pre-line", minWidth: 200 }}
           >
             {row.note || ""}
           </Typography>
