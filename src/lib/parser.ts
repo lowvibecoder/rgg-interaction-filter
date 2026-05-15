@@ -28,32 +28,36 @@ function cleanRscJson(raw: string): string {
 }
 
 /**
- * Extract individual JSON objects one at a time from the escaped string.
- * This handles the RSC data format more robustly than bulk parsing.
+ * Extract RSC payload from self.__next_f.push call
  */
 export function parseRscPayload(html: string): RggInteraction[] {
-  const marker = '\\"interactions\\":[';
-  const startIdx = html.lastIndexOf(marker);
-  if (startIdx === -1) return [];
+  // Find the RSC payload: self.__next_f.push([1,"...")
+  const pushPattern = /self\.__next_f\.push\(\[1,\s*"([^"]+)"\]/;
+  const match = html.match(pushPattern);
+  if (!match) return [];
 
-  const arrStart = startIdx + marker.length - 1;
+  const rawData = match[1];
+  const cleaned = cleanRscJson(rawData);
 
-  // Extract each top-level object from the array
-  const results: RggInteraction[] = [];
-  let pos = arrStart + 1; // skip the [
-  let braceDepth = 0;
-  let inString = false;
-  let escaped = false;
-  let objectStart = -1;
+  // Parse the cleaned JSON to get the interactions array
+  try {
+    const data = JSON.parse(cleaned);
+    if (!data || typeof data !== 'object') return [];
 
-
-  function tryParseObject(raw: string): RggInteraction | null {
-    const cleaned = cleanRscJson(raw);
-    try {
-      const obj = JSON.parse(cleaned);
-      if (obj && typeof obj === "object" && obj._id && obj.dateAdded) {
-        return obj as RggInteraction;
+    // Find the interactions array
+    const interactions: any[] = [];
+    if (Array.isArray(data.interactions)) {
+      for (const item of data.interactions) {
+        if (item && typeof item === 'object' && item._id && item.dateAdded) {
+          interactions.push(item as RggInteraction);
+        }
       }
+    }
+    return interactions;
+  } catch {
+    return [];
+  }
+}
     } catch {
       // skip invalid objects
     }
