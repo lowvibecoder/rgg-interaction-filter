@@ -17,7 +17,7 @@ function jsUnescape(s: string): string {
  */
 export function parseGamePage(html: string, source: string): GameItem[] {
   const results: GameItem[] = [];
-  const sourceMarker = `"${source}":[`;
+  const sourceMarker = `\\"${source}\\":[`;
   const startIdx = html.lastIndexOf(sourceMarker);
   if (startIdx === -1) return [];
 
