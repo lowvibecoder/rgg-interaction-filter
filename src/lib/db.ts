@@ -3,6 +3,11 @@ import { ACTIVE_PLAYERS } from "./players";
 
 const getSql = () => neon(process.env.POSTGRES_URL!);
 
+// Parse YYYY-MM-DD to UTC timestamp (noon-based to avoid timezone shifts)
+function dateUTC(y: number, m: number, d: number) { return Date.UTC(y, m - 1, d); }
+function dateFromStr(s: string): number { const [y,m,d]=s.split("-").map(Number); return dateUTC(y,m,d); }
+function dateToStr(s: string): number { const [y,m,d]=s.split("-").map(Number); return dateUTC(y,m,d+1) - 1; }
+
 export async function upsertInteraction(
   id: string,
   dateAdded: number,
@@ -48,8 +53,17 @@ export async function getSenders(filters?: {
   const conditions: string[] = [];
   const params: unknown[] = [];
   let pi = 1;
-  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(new Date(filters.dateFrom).getTime()); }
-  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(new Date(filters.dateTo).getTime() + 86400000); }
+  function df(year: number, month: number, day: number) { return Date.UTC(year, month - 1, day); }
+  if (filters?.dateFrom) {
+    const [y, m, d] = filters.dateFrom.split("-").map(Number);
+    conditions.push(`i.date_added >= $${pi++}`);
+    params.push(df(y, m, d));
+  }
+  if (filters?.dateTo) {
+    const [y, m, d] = filters.dateTo.split("-").map(Number);
+    conditions.push(`i.date_added <= $${pi++}`);
+    params.push(df(y, m, d + 1) - 1);
+  }
   if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
   if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
   if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
@@ -74,8 +88,8 @@ export async function getRecipients(filters?: {
   const conditions: string[] = [];
   const params: unknown[] = [];
   let pi = 1;
-  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(new Date(filters.dateFrom).getTime()); }
-  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(new Date(filters.dateTo).getTime() + 86400000); }
+  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(dateFromStr(filters.dateFrom)); }
+  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(dateToStr(filters.dateTo)); }
   if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
   if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
   if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
@@ -101,8 +115,8 @@ export async function getActionTypes(filters?: {
   const conditions: string[] = [];
   const params: unknown[] = [];
   let pi = 1;
-  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(new Date(filters.dateFrom).getTime()); }
-  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(new Date(filters.dateTo).getTime() + 86400000); }
+  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(dateFromStr(filters.dateFrom)); }
+  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(dateToStr(filters.dateTo)); }
   if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
   if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
   if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
@@ -130,11 +144,11 @@ export async function getDateRange() {
   }
   const min = new Date(Number(rows[0].min_date));
   const max = new Date(Number(rows[0].max_date));
-  // If same month/year, spread to full month
-  if (min.getFullYear() === max.getFullYear() && min.getMonth() === max.getMonth()) {
+  // Use UTC methods to avoid timezone shift
+  if (min.getUTCFullYear() === max.getUTCFullYear() && min.getUTCMonth() === max.getUTCMonth()) {
     return {
-      minDate: new Date(min.getFullYear(), min.getMonth(), 1),
-      maxDate: new Date(min.getFullYear(), min.getMonth() + 1, 0),
+      minDate: new Date(Date.UTC(min.getUTCFullYear(), min.getUTCMonth(), 1)),
+      maxDate: new Date(Date.UTC(min.getUTCFullYear(), min.getUTCMonth() + 1, 0, 23, 59, 59, 999)),
     };
   }
   return { minDate: min, maxDate: max };
@@ -172,11 +186,11 @@ export async function getInteractions(query: InteractionQuery) {
 
   if (query.dateFrom) {
     conditions.push(`i.date_added >= $${paramIndex++}`);
-    params.push(new Date(query.dateFrom).getTime());
+    params.push(dateFromStr(query.dateFrom));
   }
   if (query.dateTo) {
     conditions.push(`i.date_added <= $${paramIndex++}`);
-    params.push(new Date(query.dateTo).getTime() + 86400000);
+    params.push(dateToStr(query.dateTo));
   }
   if (query.sender) {
     conditions.push(`i.sender_name = $${paramIndex++}`);
