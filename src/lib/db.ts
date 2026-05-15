@@ -152,15 +152,15 @@ export async function getDateRange() {
   const min = Number(rows[0].min_date);
   const max = Number(rows[0].max_date);
   // Shift by local timezone offset to align with user's local date
-const minD = new Date(min + OFFSET);
-   const maxD = new Date(max + OFFSET);
+  const minD = new Date(min + OFFSET);
+  const maxD = new Date(max + OFFSET);
   if (minD.getUTCFullYear() === maxD.getUTCFullYear() && minD.getUTCMonth() === maxD.getUTCMonth()) {
     return {
       minDate: new Date(Date.UTC(minD.getUTCFullYear(), minD.getUTCMonth(), 1)),
       maxDate: new Date(Date.UTC(minD.getUTCFullYear(), minD.getUTCMonth() + 1, 0, 23, 59, 59, 999)),
     };
   }
-  return { minDate: new Date(min), maxDate: new Date(max) };
+  return { minDate: minD, maxDate: maxD };
 }
 
 interface InteractionQuery {
