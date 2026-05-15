@@ -51,6 +51,13 @@ export default function InteractionsFilters({
     return new Date(y, m - 1, d);
   }
 
+  function toDateStr(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
   const parsedDefaultMin = parseDate(defaultMinDate);
   const parsedDefaultMax = parseDate(defaultMaxDate);
 
@@ -111,8 +118,8 @@ export default function InteractionsFilters({
   const clearFilters = () => {
     setNoteInput("");
     const params = new URLSearchParams();
-    if (parsedDefaultMin) params.set("dateFrom", parsedDefaultMin.toISOString().slice(0, 10));
-    if (parsedDefaultMax) params.set("dateTo", parsedDefaultMax.toISOString().slice(0, 10));
+    if (parsedDefaultMin) params.set("dateFrom", toDateStr(parsedDefaultMin));
+    if (parsedDefaultMax) params.set("dateTo", toDateStr(parsedDefaultMax));
     params.set("activeOnly", "true");
     router.push(`?${params.toString()}`);
   };
@@ -125,7 +132,7 @@ export default function InteractionsFilters({
             label="Дата с"
             format="dd.MM.yy"
             value={dateFrom}
-            onChange={(v) => navigate({ dateFrom: v ? v.toISOString().slice(0, 10) : null })}
+            onChange={(v) => navigate({ dateFrom: v ? toDateStr(v) : null })}
             views={currentMonthSame ? ["day"] : undefined}
             view={currentMonthSame ? "day" : undefined}
             openTo={currentMonthSame ? "day" : undefined}
