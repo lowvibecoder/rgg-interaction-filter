@@ -15,7 +15,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ru } from "date-fns/locale/ru";
 import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface FiltersProps {
   senders: string[];
@@ -49,6 +49,15 @@ export default function InteractionsFilters({
     searchParams.get("activeOnly") !== "false"
   );
 
+  const filteredSenders = useMemo(
+    () => (activeOnly ? senders.filter((s) => activePlayers.includes(s)) : senders),
+    [senders, activePlayers, activeOnly]
+  );
+  const filteredRecipients = useMemo(
+    () => (activeOnly ? recipients.filter((r) => activePlayers.includes(r)) : recipients),
+    [recipients, activePlayers, activeOnly]
+  );
+
   const applyFilters = () => {
     const params = new URLSearchParams();
     if (dateFrom) params.set("dateFrom", dateFrom.toISOString().slice(0, 10));
@@ -78,18 +87,30 @@ export default function InteractionsFilters({
         <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2 }}>
           <DatePicker
             label="Дата с"
+            format="dd.MM.yyyy"
             value={dateFrom}
             onChange={(v) => setDateFrom(v)}
-            slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
+            slotProps={{
+              textField: {
+                size: "small",
+                sx: { minWidth: 160 },
+              },
+            }}
           />
           <DatePicker
             label="Дата по"
+            format="dd.MM.yyyy"
             value={dateTo}
             onChange={(v) => setDateTo(v)}
-            slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
+            slotProps={{
+              textField: {
+                size: "small",
+                sx: { minWidth: 160 },
+              },
+            }}
           />
           <Autocomplete
-            options={senders}
+            options={filteredSenders}
             value={sender || null}
             onChange={(_, v) => setSender(v || "")}
             renderInput={(params) => (
@@ -99,7 +120,7 @@ export default function InteractionsFilters({
             sx={{ minWidth: 180 }}
           />
           <Autocomplete
-            options={recipients}
+            options={filteredRecipients}
             value={recipient || null}
             onChange={(_, v) => setRecipient(v || "")}
             renderInput={(params) => (
@@ -130,8 +151,6 @@ export default function InteractionsFilters({
             onChange={(e) => setNote(e.target.value)}
             sx={{ minWidth: 200 }}
           />
-        </Stack>
-        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
           <FormControlLabel
             control={
               <Checkbox
