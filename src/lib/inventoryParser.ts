@@ -26,6 +26,7 @@ export function parseInventoryPage(html: string, playerName: string): ParsedInve
     const sectionHtml = html.substring(sectionIdx + section.heading.length, sectionEnd);
     if (sectionHtml.includes("Пусто")) continue;
 
+    const sectionItems: { name: string; quantity: number }[] = [];
     let pos = 0;
     while (pos < sectionHtml.length) {
       const textRoot = sectionHtml.indexOf("MuiListItemText-root", pos);
@@ -48,12 +49,27 @@ export function parseInventoryPage(html: string, playerName: string): ParsedInve
             if (qtyMatch) {
               quantity = parseInt(qtyMatch[1], 10);
             }
-            results.push({ playerName, itemName: rawName, itemType: section.type, quantity });
+            sectionItems.push({ name: rawName, quantity });
           }
         }
       }
 
       pos = itemEnd + 5;
+    }
+
+    // Merge duplicates within the section
+    const merged = new Map<string, { name: string; quantity: number }>();
+    for (const item of sectionItems) {
+      const existing = merged.get(item.name);
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        merged.set(item.name, { name: item.name, quantity: item.quantity });
+      }
+    }
+
+    for (const [, item] of merged) {
+      results.push({ playerName, itemName: item.name, itemType: section.type, quantity: item.quantity });
     }
   }
 
