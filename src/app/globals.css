@@ -5,13 +5,10 @@
 }
 
 html, body {
-  height: 100%;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 body {
-  display: flex;
-  flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
