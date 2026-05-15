@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Parse game data (wheels, items, rolls, effects, events)
         run: |
-          curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse-game-data" \
+          RESPONSE=$(curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse-game-data" \
             -H "Authorization: Bearer ${{ secrets.PARSE_SECRET }}" \
-            -H "Content-Type: application/json"
+            -H "Content-Type: application/json")
+          echo "Response: $RESPONSE"
+          echo "$RESPONSE" | grep -q '"success"' || exit 1
