@@ -11,13 +11,16 @@ function extractActionType(text: string): { actionType: string; note: string } {
 }
 
 export function parseRscPayload(html: string): RggInteraction[] {
+  // The RSC payload with actual data is the LAST occurrence in the HTML
   const marker = '"interactions":[';
-  const startIdx = html.indexOf(marker);
+  const startIdx = html.lastIndexOf(marker);
   if (startIdx === -1) return [];
 
-  const jsonStart = html.indexOf("[", startIdx + marker.length - 1);
-  if (jsonStart === -1) return [];
+  // Find the array start - the `[` right after `"interactions":`
+  const jsonStart = startIdx + marker.length - 1;
+  if (jsonStart >= html.length) return [];
 
+  // Parse JSON with bracket matching, accounting for escaped strings in the HTML
   let depth = 0;
   let endIdx = -1;
   let inString = false;
@@ -53,54 +56,25 @@ export function parseRscPayload(html: string): RggInteraction[] {
 
   let jsonStr = html.slice(jsonStart, endIdx);
 
-  // Clean up RSC special markers
+  // Clean up RSC special markers BEFORE un-escaping
   jsonStr = jsonStr
-    .replace(/\$D/g, "") // Date markers
-    .replace(/\$L\d+/g, "") // Lazy component markers
+    .replace(/\$D/g, "") // Date markers like $D2026-...
+    .replace(/\$L\d+/g, '"null"') // Lazy component markers like $L47
     .replace(/\$undefined/g, "null")
-    .replace(/\$[A-Z]/g, ""); // Other RSC markers
+    .replace(/\"\$[A-Z]\"/g, '""'); // Other RSC markers
 
-  // Fix escaped unicode
-  jsonStr = jsonStr.replace(/\\(u[0-9a-fA-F]{4})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16))
-  );
-
-  // Fix escaped forward slashes
-  jsonStr = jsonStr.replace(/\\\//g, "/");
+  // Unescape JSON string (it's escaped inside the __next_f.push string)
+  jsonStr = jsonStr.replace(/\\"/g, '"').replace(/\\n/g, "\n").replace(/\\\//g, "/");
 
   try {
     const data = JSON.parse(jsonStr);
-    return Array.isArray(data) ? data : [];
+    const arr = Array.isArray(data) ? data : [];
+    // The data might be wrapped in an extra array: [[item1, item2]]
+    if (arr.length === 1 && Array.isArray(arr[0])) return arr[0] as RggInteraction[];
+    return arr as RggInteraction[];
   } catch {
-    // If JSON parse fails, try within __next_f data
-    return extractFromNextF(html);
+    return [];
   }
-}
-
-function extractFromNextF(html: string): RggInteraction[] {
-  // Try to find interaction data in self.__next_f.push format
-  const regex = /self\.__next_f\.push\(\[1,"[^"]*\\"interactions\\":(\[.*?\])\\"/g;
-  const results: RggInteraction[] = [];
-  let match;
-
-  while ((match = regex.exec(html)) !== null) {
-    try {
-      let jsonStr = match[1]
-        .replace(/\\"/g, '"')
-        .replace(/\\n/g, "\n")
-        .replace(/\$D/g, "")
-        .replace(/\\\//g, "/");
-
-      const parsed = JSON.parse(jsonStr);
-      if (Array.isArray(parsed)) {
-        results.push(...parsed);
-      }
-    } catch {
-      // continue to next match
-    }
-  }
-
-  return results;
 }
 
 export function parseInteractions(html: string): ParsedInteraction[] {
