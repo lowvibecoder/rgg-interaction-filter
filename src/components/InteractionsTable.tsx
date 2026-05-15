@@ -130,7 +130,7 @@ export default function InteractionsTable({ rows, total }: TableProps) {
         <Box sx={{ minWidth: 200, flex: 2 }}>Примечание</Box>
       </Box>
       <Virtuoso
-        style={{ height: "70vh" }}
+        style={{ height: "calc(100vh - 240px)" }}
         data={rows}
         totalCount={rows.length}
         itemContent={(_, item) => <InteractionRow item={item} />}
