@@ -66,6 +66,8 @@ export function parseRscPayload(html: string): RggInteraction[] {
   let inString = false;
   let escaped = false;
   let objectStart = -1;
+  let totalObjectsFound = 0;
+  let breakOnBracket = false;
 
   function tryParseObject(raw: string): RggInteraction | null {
     const cleaned = cleanRscJson(raw);
@@ -106,6 +108,7 @@ export function parseRscPayload(html: string): RggInteraction[] {
     if (ch === "{") {
       if (braceDepth === 0) {
         objectStart = pos;
+        totalObjectsFound++;
       }
       braceDepth++;
     } else if (ch === "}") {
@@ -123,6 +126,7 @@ export function parseRscPayload(html: string): RggInteraction[] {
     pos++;
   }
 
+  console.log(`Parser: found ${totalObjectsFound} objects, parsed ${results.length}`);
   return results;
 }
 
