@@ -24,24 +24,34 @@ interface PageProps {
 
 export default async function Home({ searchParams }: PageProps) {
   const params = await searchParams;
+  const activeOnly = params.activeOnly !== "false";
 
-  const [senders, recipients, actionTypes, interactionData, dateRange] =
-    await Promise.all([
-      getSenders(),
-      getRecipients(),
-      getActionTypes(),
-      getInteractions({
-        dateFrom: params.dateFrom,
-        dateTo: params.dateTo,
-        sender: params.sender,
-        recipient: params.recipient,
-        action: params.action,
-        note: params.note,
-        activeOnly: params.activeOnly !== "false",
-        pageSize: 10000,
-      }),
-      getDateRange(),
-    ]);
+  const [
+    senders,
+    allRecipients,
+    allActionTypes,
+    interactionData,
+    dateRange,
+    activeRecipients,
+    activeActionTypes,
+  ] = await Promise.all([
+    getSenders(),
+    getRecipients(false),
+    getActionTypes(false),
+    getInteractions({
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
+      sender: params.sender,
+      recipient: params.recipient,
+      action: params.action,
+      note: params.note,
+      activeOnly,
+      pageSize: 10000,
+    }),
+    getDateRange(),
+    getRecipients(true),
+    getActionTypes(true),
+  ]);
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
@@ -51,8 +61,10 @@ export default async function Home({ searchParams }: PageProps) {
       <Stack spacing={3}>
         <InteractionsFilters
           senders={senders.map((s) => s.sender_name)}
-          recipients={recipients.map((r) => r.recipient_name)}
-          actionTypes={actionTypes.map((a) => a.action_type)}
+          allRecipients={allRecipients.map((r) => r.recipient_name)}
+          allActionTypes={allActionTypes.map((a) => a.action_type)}
+          activeRecipients={activeRecipients.map((r) => r.recipient_name)}
+          activeActionTypes={activeActionTypes.map((a) => a.action_type)}
           activePlayers={ACTIVE_PLAYERS}
           defaultMinDate={dateRange.minDate?.toISOString() ?? null}
           defaultMaxDate={dateRange.maxDate?.toISOString() ?? null}

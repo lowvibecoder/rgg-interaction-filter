@@ -49,16 +49,37 @@ export async function getSenders() {
   return rows;
 }
 
-export async function getRecipients() {
+export async function getRecipients(activeOnly?: boolean) {
   const sql = getSql();
+  if (activeOnly) {
+    const placeholders = ACTIVE_PLAYERS.map((_, i) => `$${i + 1}`).join(",");
+    const rows = (await sql.query(
+      `SELECT DISTINCT ir.recipient_name FROM interaction_recipients ir
+       JOIN interactions i ON i.id = ir.interaction_id
+       WHERE i.sender_name IN (${placeholders})
+       ORDER BY ir.recipient_name`,
+      ACTIVE_PLAYERS
+    )) as { recipient_name: string }[];
+    return rows;
+  }
   const rows = (await sql`
     SELECT DISTINCT recipient_name FROM interaction_recipients ORDER BY recipient_name
   `) as { recipient_name: string }[];
   return rows;
 }
 
-export async function getActionTypes() {
+export async function getActionTypes(activeOnly?: boolean) {
   const sql = getSql();
+  if (activeOnly) {
+    const placeholders = ACTIVE_PLAYERS.map((_, i) => `$${i + 1}`).join(",");
+    const rows = (await sql.query(
+      `SELECT DISTINCT action_type FROM interactions
+       WHERE sender_name IN (${placeholders})
+       ORDER BY action_type`,
+      ACTIVE_PLAYERS
+    )) as { action_type: string }[];
+    return rows;
+  }
   const rows = (await sql`
     SELECT DISTINCT action_type FROM interactions ORDER BY action_type
   `) as { action_type: string }[];

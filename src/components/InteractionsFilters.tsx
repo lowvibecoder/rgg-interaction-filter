@@ -19,8 +19,10 @@ import { useState, useMemo } from "react";
 
 interface FiltersProps {
   senders: string[];
-  recipients: string[];
-  actionTypes: string[];
+  allRecipients: string[];
+  allActionTypes: string[];
+  activeRecipients: string[];
+  activeActionTypes: string[];
   activePlayers: string[];
   defaultMinDate: string | null;
   defaultMaxDate: string | null;
@@ -28,8 +30,10 @@ interface FiltersProps {
 
 export default function InteractionsFilters({
   senders,
-  recipients,
-  actionTypes,
+  allRecipients,
+  allActionTypes,
+  activeRecipients,
+  activeActionTypes,
   activePlayers,
   defaultMinDate,
   defaultMaxDate,
@@ -63,8 +67,12 @@ export default function InteractionsFilters({
     [senders, activePlayers, activeOnly]
   );
   const filteredRecipients = useMemo(
-    () => (activeOnly ? recipients.filter((r) => activePlayers.includes(r)) : recipients),
-    [recipients, activePlayers, activeOnly]
+    () => (activeOnly ? activeRecipients : allRecipients),
+    [allRecipients, activeRecipients, activeOnly]
+  );
+  const filteredActionTypes = useMemo(
+    () => (activeOnly ? activeActionTypes : allActionTypes),
+    [allActionTypes, activeActionTypes, activeOnly]
   );
 
   const applyFilters = () => {
@@ -159,7 +167,7 @@ export default function InteractionsFilters({
             sx={{ minWidth: 160 }}
           >
             <MenuItem value="">Все</MenuItem>
-            {actionTypes.map((a) => (
+            {filteredActionTypes.map((a) => (
               <MenuItem key={a} value={a}>
                 {a}
               </MenuItem>
