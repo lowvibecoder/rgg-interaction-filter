@@ -71,18 +71,20 @@ export default function InteractionsFilters({
           type="date"
           size="small"
           slotProps={{ inputLabel: { shrink: true } }}
+          placeholder="ДД.ММ.ГГГГ"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          sx={{ minWidth: 160 }}
+          sx={{ minWidth: 160, "& input": { fontFamily: "inherit" } }}
         />
         <TextField
           label="Дата по"
           type="date"
           size="small"
           slotProps={{ inputLabel: { shrink: true } }}
+          placeholder="ДД.ММ.ГГГГ"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          sx={{ minWidth: 160 }}
+          sx={{ minWidth: 160, "& input": { fontFamily: "inherit" } }}
         />
         <Autocomplete
           options={senders}

@@ -15,10 +15,22 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
+import updateLocale from "dayjs/plugin/updateLocale";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { ParsedInteractionWithRecipients } from "@/lib/types";
 
+dayjs.extend(updateLocale);
 dayjs.locale("ru");
+dayjs.updateLocale("ru", {
+  months: [
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+  ],
+  monthsShort: [
+    "янв", "фев", "мар", "апр", "мая", "июн",
+    "июл", "авг", "сен", "окт", "ноя", "дек",
+  ],
+});
 
 interface TableProps {
   rows: ParsedInteractionWithRecipients[];
@@ -86,7 +98,7 @@ export default function InteractionsTable({
             {rows.map((row) => (
               <TableRow key={row.id} hover>
                 <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {dayjs(row.date_added).format("DD MMM HH:mm")}
+                  {dayjs(Number(row.date_added)).format("DD MMM YYYY HH:mm")}
                 </TableCell>
                 <TableCell>{row.sender_name}</TableCell>
                 <TableCell>
