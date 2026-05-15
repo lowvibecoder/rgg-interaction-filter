@@ -19,8 +19,13 @@ export function parseGamePage(html: string, source: string): GameItem[] {
   const results: GameItem[] = [];
 
   // Try source-specific marker first (e.g. \"wheels\":[), then fallback to \"items\":[
+  // For "global-events", also try camelCase "globalEvents":[
   let sourceMarker = `\\"${source}\\":[`;
   let startIdx = html.lastIndexOf(sourceMarker);
+  if (startIdx === -1) {
+    sourceMarker = `\\"${source.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}\\":[`;
+    startIdx = html.lastIndexOf(sourceMarker);
+  }
   if (startIdx === -1) {
     sourceMarker = '\\"items\\":[';
     startIdx = html.lastIndexOf(sourceMarker);
