@@ -44,13 +44,20 @@ export function parseRscPayload(html: string): RggInteraction[] {
     const data = JSON.parse(cleaned);
     if (!data || typeof data !== 'object') return [];
 
-    // Find the interactions array
+    // Find interactions array
     const interactions: any[] = [];
     if (Array.isArray(data.interactions)) {
       for (const item of data.interactions) {
         if (item && typeof item === 'object' && item._id && item.dateAdded) {
           interactions.push(item as RggInteraction);
         }
+      }
+    }
+    return interactions;
+  } catch {
+    return [];
+  }
+
       }
     }
     return interactions;
