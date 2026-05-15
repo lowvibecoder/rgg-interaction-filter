@@ -114,7 +114,7 @@ export default function InteractionsTable({
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
-                    {row.note || row.raw_text}
+                    {row.note || ""}
                   </Typography>
                 </TableCell>
               </TableRow>
