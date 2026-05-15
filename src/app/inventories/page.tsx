@@ -1,6 +1,6 @@
-import { Typography, Box, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from "@mui/material";
+import { Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from "@mui/material";
 import type { Metadata } from "next";
-import { getInventoryItems, getPlayersByInventoryItem } from "@/lib/db";
+import { getInventoryItems, getPlayersByInventoryItem, getGameItems } from "@/lib/db";
 import InventoryFilter from "@/components/InventoryFilter";
 
 export const metadata: Metadata = {
@@ -13,8 +13,15 @@ interface PageProps {
 
 export default async function InventoriesPage({ searchParams }: PageProps) {
   const { item } = await searchParams;
-  const items = await getInventoryItems();
+  const [allItems, gameItems] = await Promise.all([getInventoryItems(), getGameItems()]);
+
+  const gameItemMap = new Map<string, { description: string; source: string }>();
+  for (const gi of gameItems) {
+    gameItemMap.set(gi.name, { description: gi.description, source: gi.source });
+  }
+
   const players = item ? await getPlayersByInventoryItem(item) : [];
+  const itemInfo = item ? gameItemMap.get(item) : null;
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
@@ -23,13 +30,25 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
       </Typography>
       <Stack spacing={3}>
         <Box>
-          <InventoryFilter items={items} />
+          <InventoryFilter items={allItems} />
         </Box>
         {item && (
           <Box>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Предмет: <strong>{item}</strong> — найдено у {players.length} игроков
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+              <Typography variant="subtitle1">
+                Предмет: <strong>{item}</strong>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                — найдено у {players.length} игроков
+              </Typography>
+            </Box>
+            {itemInfo?.description && (
+              <Paper sx={{ p: 1.5, mb: 2, bgcolor: "background.paper" }}>
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "pre-line", fontSize: "0.75rem" }}>
+                  {itemInfo.description}
+                </Typography>
+              </Paper>
+            )}
             {players.length > 0 ? (
               <TableContainer component={Paper} sx={{ bgcolor: "background.paper" }}>
                 <Table size="small">
