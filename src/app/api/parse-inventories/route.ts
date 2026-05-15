@@ -31,13 +31,13 @@ export async function POST(request: Request) {
   const errors: string[] = [];
 
   // Process players in batches of 5 to avoid timeout
-  const batchSize = 5;
+  const batchSize = 3;
   for (let i = 0; i < ACTIVE_PLAYERS.length; i += batchSize) {
     const batch = ACTIVE_PLAYERS.slice(i, i + batchSize);
     const results = await Promise.allSettled(
       batch.map(async (player) => {
         const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
-          signal: AbortSignal.timeout(3000),
+          signal: AbortSignal.timeout(8000),
         });
         const html = await res.text();
         return parseInventoryPage(html, player);
