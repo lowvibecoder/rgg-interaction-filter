@@ -17,23 +17,32 @@ export async function POST(request: Request) {
     const parsed = parseInteractions(html);
 
     let inserted = 0;
+    let errors = 0;
     for (const interaction of parsed) {
-      await upsertInteraction(
-        interaction.id,
-        interaction.dateAdded,
-        interaction.senderName,
-        interaction.senderLogin,
-        interaction.actionType,
-        interaction.note,
-        interaction.rawText
-      );
-      await upsertRecipients(interaction.id, interaction.recipients);
-      inserted++;
+      try {
+        await upsertInteraction(
+          interaction.id,
+          interaction.dateAdded,
+          interaction.senderName,
+          interaction.senderLogin,
+          interaction.actionType,
+          interaction.note,
+          interaction.rawText
+        );
+        await upsertRecipients(interaction.id, interaction.recipients);
+        inserted++;
+      } catch (e) {
+        errors++;
+        console.error("Insert error:", e, interaction.id);
+      }
     }
 
     return NextResponse.json({
       success: true,
       count: inserted,
+      errors,
+      parsed: parsed.length,
+      htmlSize: html.length,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
