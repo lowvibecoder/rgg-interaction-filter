@@ -15,7 +15,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ru } from "date-fns/locale/ru";
 import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 
 interface FiltersProps {
   senders: string[];
@@ -57,6 +57,8 @@ export default function InteractionsFilters({
   const [activeOnly, setActiveOnly] = useState(
     searchParams.get("activeOnly") !== "false"
   );
+  const activeOnlyRef = useRef(activeOnly);
+  activeOnlyRef.current = activeOnly;
 
   const filteredSenders = useMemo(
     () => (activeOnly ? senders.filter((s) => activePlayers.includes(s)) : senders),
@@ -169,7 +171,9 @@ export default function InteractionsFilters({
             control={
               <Checkbox
                 checked={activeOnly}
-                onChange={(e) => setActiveOnly(e.target.checked)}
+                onChange={(e) => {
+                  setActiveOnly(e.target.checked);
+                }}
               />
             }
             label="Только активные игроки"
