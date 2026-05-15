@@ -30,14 +30,25 @@ export async function POST(request: Request) {
   const allItems: { playerName: string; itemName: string; itemType: string; quantity: number }[] = [];
   const errors: string[] = [];
 
-  for (const player of ACTIVE_PLAYERS) {
-    try {
-      const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`);
-      const html = await res.text();
-      const items = parseInventoryPage(html, player);
-      allItems.push(...items);
-    } catch (e) {
-      errors.push(player);
+  // Process players in batches of 5 to avoid timeout
+  const batchSize = 5;
+  for (let i = 0; i < ACTIVE_PLAYERS.length; i += batchSize) {
+    const batch = ACTIVE_PLAYERS.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (player) => {
+        const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        const html = await res.text();
+        return parseInventoryPage(html, player);
+      })
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        allItems.push(...result.value);
+      } else {
+        errors.push("batch failed");
+      }
     }
   }
 
