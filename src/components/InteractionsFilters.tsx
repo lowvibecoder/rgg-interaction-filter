@@ -15,7 +15,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ru } from "date-fns/locale/ru";
 import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 
 interface FiltersProps {
   senders: string[];
@@ -57,8 +57,6 @@ export default function InteractionsFilters({
   const [activeOnly, setActiveOnly] = useState(
     searchParams.get("activeOnly") !== "false"
   );
-  const activeOnlyRef = useRef(activeOnly);
-  activeOnlyRef.current = activeOnly;
 
   const filteredSenders = useMemo(
     () => (activeOnly ? senders.filter((s) => activePlayers.includes(s)) : senders),
