@@ -3,6 +3,8 @@ import { ACTIVE_PLAYERS } from "./players";
 
 const getSql = () => neon(process.env.POSTGRES_URL!);
 
+const OFFSET = -new Date().getTimezoneOffset() * 60 * 1000; // local timezone offset in ms
+
 // Convert YYYY-MM-DD to local midnight timestamp
 function dateFromStr(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
@@ -149,9 +151,8 @@ export async function getDateRange() {
   }
   const min = Number(rows[0].min_date);
   const max = Number(rows[0].max_date);
-  // Shift by 12h to align with user's local date (works for any timezone +/-12h)
-const OFFSET = -new Date().getTimezoneOffset() * 60 * 1000; // local timezone offset in ms
-   const minD = new Date(min + OFFSET);
+  // Shift by local timezone offset to align with user's local date
+const minD = new Date(min + OFFSET);
    const maxD = new Date(max + OFFSET);
   if (minD.getUTCFullYear() === maxD.getUTCFullYear() && minD.getUTCMonth() === maxD.getUTCMonth()) {
     return {
