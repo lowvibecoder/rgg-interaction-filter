@@ -110,16 +110,25 @@ export default function InteractionsTable({ rows, total }: TableProps) {
               />
             ))}
           </Stack>
-          <Box sx={{ minWidth: 130 }}>
-            <Chip
-              label={row.action_type}
-              size="small"
+          <Box sx={{ minWidth: 130, maxWidth: 200 }}>
+            <Typography
+              variant="caption"
               sx={{
+                display: "inline-block",
+                px: 1,
+                py: 0.3,
+                borderRadius: "4px",
                 backgroundColor: getActionColor(row.action_type),
                 color: "#fff",
                 fontWeight: 600,
+                lineHeight: 1.3,
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "normal",
               }}
-            />
+            >
+              {row.action_type}
+            </Typography>
           </Box>
           <Typography
             variant="body2"
