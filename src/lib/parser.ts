@@ -10,107 +10,115 @@ function extractActionType(text: string): { actionType: string; note: string } {
   return { actionType, note };
 }
 
-/**
- * Convert JS-string-escaped data to valid JSON.
- * Raw data is inside self.__next_f.push([1,"..."]), so it has
- * JS escaping: \\ -> \, \" -> ". Leave \n, \t etc. for JSON.parse.
- */
 function cleanRscJson(raw: string): string {
   let s = raw
-    .replace(/\\\\/g, "\x00")  // JS \\ -> temp
-    .replace(/\\"/g, '"')      // JS \" -> "
-    .replace(/\x00/g, "\\")    // temp -> \
-    .replace(/\$D/g, "")       // RSC Date markers
-    .replace(/\$L\d+/g, "null") // RSC Lazy refs
+    .replace(/\\\\/g, "\x00")
+    .replace(/\\"/g, '"')
+    .replace(/\x00/g, "\\")
+    .replace(/\$D/g, "")
+    .replace(/\$L\d+/g, "null")
     .replace(/\$undefined/g, "null")
-    .replace(/\$[A-Z]/g, "");   // Other RSC markers
+    .replace(/\$[A-Z]/g, "");
   return s;
 }
 
-/**
- * Extract RSC payload from self.__next_f.push call
- */
 export function parseRscPayload(html: string): RggInteraction[] {
-  // Find the RSC payload: self.__next_f.push([1,"...")
+  // Try to find interactions marker directly in raw HTML
+  const marker = '\\"interactions\\":[';
+  const startIdx = html.lastIndexOf(marker);
+  if (startIdx !== -1) {
+    const arrStart = startIdx + marker.length - 1;
+    const results: RggInteraction[] = [];
+    let pos = arrStart + 1;
+    let braceDepth = 0;
+    let inString = false;
+    let escaped = false;
+    let objectStart = -1;
+
+    function tryParseObject(raw: string): RggInteraction | null {
+      const cleaned = cleanRscJson(raw);
+      try {
+        const obj = JSON.parse(cleaned);
+        if (obj && typeof obj === "object" && obj._id && obj.dateAdded) {
+          return obj as RggInteraction;
+        }
+      } catch {
+        // skip
+      }
+      return null;
+    }
+
+    while (pos < html.length) {
+      const ch = html[pos];
+      if (escaped) {
+        escaped = false;
+        pos++;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        pos++;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        pos++;
+        continue;
+      }
+      if (inString) {
+        pos++;
+        continue;
+      }
+      if (ch === "{") {
+        if (braceDepth === 0) objectStart = pos;
+        braceDepth++;
+      } else if (ch === "}") {
+        braceDepth--;
+        if (braceDepth === 0 && objectStart >= 0) {
+          const raw = html.slice(objectStart, pos + 1);
+          const parsed = tryParseObject(raw);
+          if (parsed) results.push(parsed);
+          objectStart = -1;
+        }
+      } else if (ch === "]" && braceDepth === 0) {
+        break;
+      }
+      pos++;
+    }
+    return results;
+  }
+
+  // Fallback: try __next_f.push pattern
   const pushPattern = /self\.__next_f\.push\(\[1,\s*"([^"]+)"\]/;
   const match = html.match(pushPattern);
   if (!match) return [];
 
   const rawData = match[1];
   const cleaned = cleanRscJson(rawData);
-
-  // Parse the cleaned JSON to get the interactions array
   try {
     const data = JSON.parse(cleaned);
     if (!data || typeof data !== 'object') return [];
-
-    // Find interactions array
-    const interactions: any[] = [];
-    if (Array.isArray(data.interactions)) {
-      for (const item of data.interactions) {
-        if (item && typeof item === 'object' && item._id && item.dateAdded) {
-          interactions.push(item as RggInteraction);
+    const results: RggInteraction[] = [];
+    function findInteractions(obj: unknown) {
+      if (!obj || typeof obj !== 'object') return;
+      if (Array.isArray(obj)) {
+        for (const item of obj) {
+          if (item && typeof item === 'object' && item._id && item.dateAdded) {
+            results.push(item as RggInteraction);
+          }
+          findInteractions(item);
+        }
+      } else {
+        for (const val of Object.values(obj)) {
+          findInteractions(val);
         }
       }
     }
-    return interactions;
+    findInteractions(data);
+    return results;
   } catch {
     return [];
   }
-
-      }
-    }
-    return interactions;
-  } catch {
-    return [];
-  }
-}
-    // (old object parsing removed – not needed with new payload extraction)
-  }
-
-    const ch = html[pos];
-
-    if (escaped) {
-      escaped = false;
-      pos++;
-      continue;
-    }
-    if (ch === "\\") {
-      escaped = true;
-      pos++;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      pos++;
-      continue;
-    }
-    if (inString) {
-      pos++;
-      continue;
-    }
-
-    if (ch === "{") {
-      if (braceDepth === 0) {
-        objectStart = pos;
-      }
-      braceDepth++;
-    } else if (ch === "}") {
-      braceDepth--;
-      if (braceDepth === 0 && objectStart >= 0) {
-        const raw = html.slice(objectStart, pos + 1);
-        const parsed = tryParseObject(raw);
-        if (parsed) results.push(parsed);
-        objectStart = -1;
-      }
-    } else if (ch === "]" && braceDepth === 0) {
-      break; // end of interactions array
-    }
-
-    pos++;
-  }
-
-  return results;
 }
 
 export function parseInteractions(html: string): ParsedInteraction[] {
