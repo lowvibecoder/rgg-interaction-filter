@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Parse inventories
         run: |
-          curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse-inventories" \
+          RESPONSE=$(curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse-inventories" \
             -H "Authorization: Bearer ${{ secrets.PARSE_SECRET }}" \
-            -H "Content-Type: application/json"
+            -H "Content-Type: application/json")
+          echo "$RESPONSE"
+          echo "$RESPONSE" | grep -q '"success"' || exit 1
