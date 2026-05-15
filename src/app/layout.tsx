@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={rubik.variable}>
-      <body>
+      <body style={{ backgroundColor: "#121212", margin: 0 }}>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
