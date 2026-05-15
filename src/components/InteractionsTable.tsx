@@ -4,10 +4,8 @@ import {
   Chip,
   Stack,
   Typography,
-  Paper,
   Box,
 } from "@mui/material";
-import { Virtuoso } from "react-virtuoso";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
 import updateLocale from "dayjs/plugin/updateLocale";
@@ -46,70 +44,12 @@ function getActionColor(action: string): string {
   for (const [key, color] of Object.entries(actionColors)) {
     if (action.toLowerCase().includes(key.toLowerCase())) return color;
   }
-  return "#757575";
-}
-
-function InteractionRow({ item }: { item: ParsedInteractionWithRecipients }) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        gap: 2,
-        px: 2,
-        py: 1.5,
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        "&:hover": { bgcolor: "action.hover" },
-      }}
-    >
-      <Typography
-        variant="body2"
-        sx={{ minWidth: 120, whiteSpace: "nowrap", color: "text.secondary" }}
-      >
-        {dayjs(Number(item.date_added)).format("DD MMM YYYY HH:mm")}
-      </Typography>
-      <Typography variant="body2" sx={{ minWidth: 120 }}>
-        {item.sender_name}
-      </Typography>
-      <Stack
-        direction="row"
-        spacing={0.5}
-        sx={{ flexWrap: "wrap", gap: 0.5, minWidth: 150, flex: 1 }}
-      >
-        {item.recipients.map((r) => (
-          <Chip
-            key={r.recipient_name}
-            label={r.recipient_name}
-            size="small"
-            variant="outlined"
-          />
-        ))}
-      </Stack>
-      <Box sx={{ minWidth: 120 }}>
-        <Chip
-          label={item.action_type}
-          size="small"
-          sx={{
-            backgroundColor: getActionColor(item.action_type),
-            color: "#fff",
-            fontWeight: 600,
-          }}
-        />
-      </Box>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ whiteSpace: "pre-line", minWidth: 200, flex: 2 }}
-      >
-        {item.note || ""}
-      </Typography>
-    </Box>
-  );
+  return "#1e1e1e";
 }
 
 export default function InteractionsTable({ rows, total }: TableProps) {
   return (
-    <Paper>
+    <Box>
       <Box
         sx={{
           display: "flex",
@@ -118,34 +58,83 @@ export default function InteractionsTable({ rows, total }: TableProps) {
           py: 1,
           borderBottom: 2,
           borderColor: "divider",
-          bgcolor: "action.hover",
+          bgcolor: "#1a1a1a",
           fontWeight: 700,
           fontSize: "0.875rem",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
         }}
       >
-        <Box sx={{ minWidth: 120 }}>Дата</Box>
+        <Box sx={{ minWidth: 140 }}>Дата</Box>
         <Box sx={{ minWidth: 120 }}>От кого</Box>
         <Box sx={{ minWidth: 150, flex: 1 }}>Кому</Box>
-        <Box sx={{ minWidth: 120 }}>Действие</Box>
+        <Box sx={{ minWidth: 130 }}>Действие</Box>
         <Box sx={{ minWidth: 200, flex: 2 }}>Примечание</Box>
       </Box>
-      <Virtuoso
-        useWindowScroll
-        data={rows}
-        totalCount={rows.length}
-        itemContent={(_, item) => <InteractionRow item={item} />}
-        components={{
-          Footer: () => (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: "center", py: 2 }}
-            >
-              Всего: {total}
-            </Typography>
-          ),
-        }}
-      />
-    </Paper>
+      {rows.map((row) => (
+        <Box
+          key={row.id}
+          sx={{
+            display: "flex",
+            gap: 2,
+            px: 2,
+            py: 1.5,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            "&:hover": { bgcolor: "action.hover" },
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ minWidth: 140, whiteSpace: "nowrap", color: "text.secondary" }}
+          >
+            {dayjs(Number(row.date_added)).format("DD MMM YYYY HH:mm")}
+          </Typography>
+          <Typography variant="body2" sx={{ minWidth: 120 }}>
+            {row.sender_name}
+          </Typography>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{ flexWrap: "wrap", gap: 0.5, minWidth: 150, flex: 1 }}
+          >
+            {row.recipients.map((r) => (
+              <Chip
+                key={r.recipient_name}
+                label={r.recipient_name}
+                size="small"
+                variant="outlined"
+              />
+            ))}
+          </Stack>
+          <Box sx={{ minWidth: 130 }}>
+            <Chip
+              label={row.action_type}
+              size="small"
+              sx={{
+                backgroundColor: getActionColor(row.action_type),
+                color: "#fff",
+                fontWeight: 600,
+              }}
+            />
+          </Box>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ whiteSpace: "pre-line", minWidth: 200, flex: 2 }}
+          >
+            {row.note || ""}
+          </Typography>
+        </Box>
+      ))}
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ textAlign: "center", py: 2 }}
+      >
+        Всего: {total}
+      </Typography>
+    </Box>
   );
 }
