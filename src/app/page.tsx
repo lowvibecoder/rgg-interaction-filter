@@ -56,8 +56,8 @@ export default async function Home({ searchParams }: PageProps) {
           senders={senders.map((s) => s.sender_name)}
           recipients={recipients.map((r) => r.recipient_name)}
           actionTypes={actionTypes.map((a) => a.action_type)}
-          defaultMinDate={dateRange.minDate?.toISOString() ?? null}
-          defaultMaxDate={dateRange.maxDate?.toISOString() ?? null}
+          defaultMinDate={dateRange.minDate ? dateRange.minDate.toISOString().slice(0, 10) : null}
+          defaultMaxDate={dateRange.maxDate ? dateRange.maxDate.toISOString().slice(0, 10) : null}
         />
         <InteractionsTable
           rows={interactionData.rows}

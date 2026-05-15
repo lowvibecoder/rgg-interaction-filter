@@ -44,8 +44,15 @@ export default function InteractionsFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const parsedDefaultMin = defaultMinDate ? new Date(defaultMinDate) : null;
-  const parsedDefaultMax = defaultMaxDate ? new Date(defaultMaxDate) : null;
+  // Parse "YYYY-MM-DD" to local Date without timezone shift
+  function parseDate(str: string | null): Date | null {
+    if (!str) return null;
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  const parsedDefaultMin = parseDate(defaultMinDate);
+  const parsedDefaultMax = parseDate(defaultMaxDate);
 
   const currentMonthSame =
     parsedDefaultMin && parsedDefaultMax &&
@@ -98,8 +105,8 @@ export default function InteractionsFilters({
 
   const activeOnly = urlActiveOnly;
 
-  const dateFrom = urlDateFrom ? new Date(urlDateFrom) : parsedDefaultMin;
-  const dateTo = urlDateTo ? new Date(urlDateTo) : parsedDefaultMax;
+  const dateFrom = urlDateFrom ? parseDate(urlDateFrom) : parsedDefaultMin;
+  const dateTo = urlDateTo ? parseDate(urlDateTo) : parsedDefaultMax;
 
   const clearFilters = () => {
     setNoteInput("");
