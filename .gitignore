@@ -42,3 +42,8 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+check_*.js
+check_*.mjs
+check_*.ps1
+*.html

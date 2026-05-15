@@ -2,6 +2,19 @@
 
 import { useState, useEffect } from "react";
 
+function calcDisplay(date: Date): string {
+  const diff = Date.now() - date.getTime();
+  if (diff < 0) return "только что";
+  const sec = Math.floor(diff / 1000);
+  const min = Math.floor(sec / 60);
+  const hrs = Math.floor(min / 60);
+  if (sec < 10) return "только что";
+  if (sec < 60) return `${sec} сек. назад`;
+  if (min < 60) return `${min} мин. назад`;
+  if (hrs < 24) return `${hrs} ч. ${min % 60} мин. назад`;
+  return `${Math.floor(hrs / 24)} дн. назад`;
+}
+
 export default function LiveTimestamp({ date, label = "обновлено" }: { date: Date | string | null; label?: string }) {
   const [display, setDisplay] = useState("");
 
@@ -9,20 +22,7 @@ export default function LiveTimestamp({ date, label = "обновлено" }: { 
     if (!date) return;
     const target = new Date(date);
 
-    const tick = () => {
-      const diff = Date.now() - target.getTime();
-      if (diff < 0) { setDisplay("только что"); return; }
-      const sec = Math.floor(diff / 1000);
-      const min = Math.floor(sec / 60);
-      const hrs = Math.floor(min / 60);
-
-      if (sec < 10) setDisplay("только что");
-      else if (sec < 60) setDisplay(`${sec} сек. назад`);
-      else if (min < 60) setDisplay(`${min} мин. назад`);
-      else if (hrs < 24) setDisplay(`${hrs} ч. ${min % 60} мин. назад`);
-      else setDisplay(`${Math.floor(hrs / 24)} дн. назад`);
-    };
-
+    const tick = () => setDisplay(calcDisplay(target));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -30,9 +30,12 @@ export default function LiveTimestamp({ date, label = "обновлено" }: { 
 
   if (!date) return null;
 
+  // For SSR: compute initial display synchronously
+  const ssrDisplay = display || calcDisplay(new Date(date));
+
   return (
     <span style={{ fontSize: "0.75rem", color: "var(--mui-palette-text-secondary, #999)" }}>
-      {label}: {display}
+      {label}: {ssrDisplay}
     </span>
   );
 }
