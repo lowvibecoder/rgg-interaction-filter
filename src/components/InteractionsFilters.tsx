@@ -162,20 +162,20 @@ export default function InteractionsFilters({
             value={urlSender || null}
             onChange={(_, v) => navigate({ sender: v || null })}
             renderInput={(params) => (
-              <TextField {...params} label="От кого" size="small" sx={{ minWidth: 180 }} />
+              <TextField {...params} label="От кого" size="small" sx={{ minWidth: 220 }} />
             )}
             size="small"
-            sx={{ minWidth: 180 }}
+            sx={{ minWidth: 220 }}
           />
           <Autocomplete
             options={filteredRecipients}
             value={urlRecipient || null}
             onChange={(_, v) => navigate({ recipient: v || null })}
             renderInput={(params) => (
-              <TextField {...params} label="Кому" size="small" sx={{ minWidth: 180 }} />
+              <TextField {...params} label="Кому" size="small" sx={{ minWidth: 220 }} />
             )}
             size="small"
-            sx={{ minWidth: 180 }}
+            sx={{ minWidth: 220 }}
           />
           <TextField
             select
