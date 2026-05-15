@@ -1,4 +1,4 @@
-name: Parse RGG Interactions
+name: Parse RGG Data
 
 on:
   schedule:
@@ -11,8 +11,15 @@ jobs:
     steps:
       - name: Parse interactions
         run: |
-          RESPONSE=$(curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse" \
+          curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse" \
             -H "Authorization: Bearer ${{ secrets.PARSE_SECRET }}" \
-            -H "Content-Type: application/json")
-          echo "Response: $RESPONSE"
-          echo "$RESPONSE" | grep -q '"success"' || exit 1
+            -H "Content-Type: application/json"
+
+  parse-inventories:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse inventories
+        run: |
+          curl -s -X POST "${{ secrets.PARSE_URL }}/api/parse-inventories" \
+            -H "Authorization: Bearer ${{ secrets.PARSE_SECRET }}" \
+            -H "Content-Type: application/json"

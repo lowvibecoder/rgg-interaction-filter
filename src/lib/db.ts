@@ -297,3 +297,26 @@ export async function getGameItems(): Promise<GameItemRecord[]> {
     SELECT name, description, source, icon FROM game_items
   `) as GameItemRecord[];
 }
+
+export async function getInventoryItems(): Promise<string[]> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT DISTINCT item_name FROM player_items ORDER BY item_name
+  ` as { item_name: string }[];
+  return rows.map(r => r.item_name);
+}
+
+export async function getPlayersByInventoryItem(itemName: string): Promise<{
+  player_name: string;
+  item_type: string;
+  total_quantity: number;
+}[]> {
+  const sql = getSql();
+  return await sql`
+    SELECT player_name, item_type, SUM(quantity) as total_quantity
+    FROM player_items
+    WHERE item_name = ${itemName}
+    GROUP BY player_name, item_type
+    ORDER BY player_name
+  ` as { player_name: string; item_type: string; total_quantity: number }[];
+}

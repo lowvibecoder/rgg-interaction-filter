@@ -30,3 +30,15 @@ CREATE TABLE IF NOT EXISTS game_items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_game_items_name ON game_items(name);
+
+CREATE TABLE IF NOT EXISTS player_items (
+  player_name TEXT NOT NULL,
+  item_name TEXT NOT NULL,
+  item_type TEXT NOT NULL,
+  quantity INTEGER DEFAULT 1,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (player_name, item_name, item_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_items_name ON player_items(item_name);
+CREATE INDEX IF NOT EXISTS idx_player_items_player ON player_items(player_name);
