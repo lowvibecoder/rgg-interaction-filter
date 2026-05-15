@@ -3,7 +3,9 @@ import { ACTIVE_PLAYERS } from "./players";
 
 const getSql = () => neon(process.env.POSTGRES_URL!);
 
-const OFFSET = -new Date().getTimezoneOffset() * 60 * 1000; // local timezone offset in ms
+// Timezone offset in ms: use TZ_OFFSET env var (in hours), fallback to server timezone
+const TZ_HOURS = process.env.TZ_OFFSET ? Number(process.env.TZ_OFFSET) : -new Date().getTimezoneOffset() / 60;
+const OFFSET = TZ_HOURS * 60 * 60 * 1000; // local timezone offset in ms
 
 // Convert YYYY-MM-DD to local midnight timestamp
 function dateFromStr(s: string): number {
@@ -60,16 +62,15 @@ export async function getSenders(filters?: {
   const conditions: string[] = [];
   const params: unknown[] = [];
   let pi = 1;
-  function df(year: number, month: number, day: number) { return Date.UTC(year, month - 1, day); }
   if (filters?.dateFrom) {
     const [y, m, d] = filters.dateFrom.split("-").map(Number);
     conditions.push(`i.date_added >= $${pi++}`);
-    params.push(df(y, m, d));
+    params.push(dateFromStr(filters.dateFrom));
   }
   if (filters?.dateTo) {
     const [y, m, d] = filters.dateTo.split("-").map(Number);
     conditions.push(`i.date_added <= $${pi++}`);
-    params.push(df(y, m, d + 1) - 1);
+    params.push(dateToStr(filters.dateTo));
   }
   if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
   if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
