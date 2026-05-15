@@ -109,7 +109,9 @@ export function parseRscPayload(html: string): RggInteraction[] {
 export function parseInteractions(html: string): ParsedInteraction[] {
   const raw = parseRscPayload(html);
 
-  return raw.map((item) => {
+  return raw
+    .filter((item) => item.text && !item.text.startsWith("$"))
+    .map((item) => {
     const { actionType, note } = extractActionType(item.text);
     return {
       id: item._id,
