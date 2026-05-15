@@ -9,9 +9,12 @@ export default function AutoRefresh({ intervalMs = 120000 }: { intervalMs?: numb
   useEffect(() => {
     const id = setInterval(async () => {
       try {
-        await fetch("/api/touch-all");
+        const res = await fetch("/api/touch-all");
+        const data = await res.json();
+        if (data.results?.inventories?.success || data.results?.interactions?.success) {
+          router.refresh();
+        }
       } catch {}
-      router.refresh();
     }, intervalMs);
     return () => clearInterval(id);
   }, [router, intervalMs]);
