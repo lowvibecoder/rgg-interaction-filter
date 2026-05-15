@@ -1,66 +1,72 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import { Typography, Stack, Box } from "@mui/material";
+import InteractionsFilters from "@/components/InteractionsFilters";
+import InteractionsTable from "@/components/InteractionsTable";
+import {
+  getInteractions,
+  getSenders,
+  getRecipients,
+  getActionTypes,
+} from "@/lib/db";
 
-export default function Home() {
+interface PageProps {
+  searchParams: Promise<{
+    dateFrom?: string;
+    dateTo?: string;
+    sender?: string;
+    recipient?: string;
+    action?: string;
+    note?: string;
+    page?: string;
+    pageSize?: string;
+  }>;
+}
+
+export default async function Home({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  const [senders, recipients, actionTypes, interactionData] =
+    await Promise.all([
+      getSenders(),
+      getRecipients(),
+      getActionTypes(),
+      getInteractions({
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        sender: params.sender,
+        recipient: params.recipient,
+        action: params.action,
+        note: params.note,
+        page: params.page ? Number(params.page) : 1,
+        pageSize: params.pageSize ? Number(params.pageSize) : 50,
+      }),
+    ]);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+        Взаимодействия
+      </Typography>
+      <Stack spacing={3}>
+        <Stack
+          direction="row"
+          sx={{ justifyContent: "space-between", alignItems: "center" }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            Всего: {interactionData.total}
+          </Typography>
+        </Stack>
+        <InteractionsFilters
+          senders={senders.map((s) => s.sender_name)}
+          recipients={recipients.map((r) => r.recipient_name)}
+          actionTypes={actionTypes.map((a) => a.action_type)}
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <InteractionsTable
+          rows={interactionData.rows}
+          total={interactionData.total}
+          page={interactionData.page}
+          pageSize={interactionData.pageSize}
+        />
+      </Stack>
+    </Box>
   );
 }
