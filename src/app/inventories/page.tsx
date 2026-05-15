@@ -28,7 +28,7 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
         Инвентари
       </Typography>
-      <Stack spacing={3}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <Box>
           <InventoryFilter items={allItems} />
         </Box>
@@ -84,7 +84,7 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
         {!item && (
           <Typography color="text.secondary">Выберите предмет или спецролл из списка</Typography>
         )}
-      </Stack>
+      </Box>
     </Box>
   );
 }
