@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseInteractions } from "@/lib/parser";
+import { parseInteractions, lastParseDebug } from "@/lib/parser";
 import { upsertInteraction, upsertRecipients } from "@/lib/db";
 
 export async function POST(request: Request) {
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       success: true,
       count: inserted,
       errors,
+      debug: lastParseDebug,
       parsed: parsed.length,
       htmlSize: html.length,
       timestamp: new Date().toISOString(),

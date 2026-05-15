@@ -1,5 +1,7 @@
 import type { RggInteraction, ParsedInteraction } from "./types";
 
+export let lastParseDebug = { found: 0, parsed: 0 };
+
 function extractActionType(text: string): { actionType: string; note: string } {
   const firstLineEnd = text.indexOf("\n");
   if (firstLineEnd === -1) {
@@ -126,7 +128,7 @@ export function parseRscPayload(html: string): RggInteraction[] {
     pos++;
   }
 
-  console.log(`Parser: found ${totalObjectsFound} objects, parsed ${results.length}`);
+  lastParseDebug = { found: totalObjectsFound, parsed: results.length };
   return results;
 }
 
