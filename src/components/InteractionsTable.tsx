@@ -53,7 +53,7 @@ export default function InteractionsTable({ rows, total }: TableProps) {
       <Box
         sx={{
           display: "flex",
-          gap: 2,
+          gap: 0.5,
           px: 2,
           py: 1,
           borderBottom: 2,
@@ -77,7 +77,7 @@ export default function InteractionsTable({ rows, total }: TableProps) {
           key={row.id}
           sx={{
             display: "flex",
-            gap: 2,
+            gap: 0.5,
             px: 2,
             py: 1.5,
             borderBottom: "1px solid",

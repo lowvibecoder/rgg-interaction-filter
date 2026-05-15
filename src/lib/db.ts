@@ -41,48 +41,82 @@ export async function upsertRecipients(
   }
 }
 
-export async function getSenders() {
+export async function getSenders(filters?: {
+  dateFrom?: string; dateTo?: string; recipient?: string; action?: string; note?: string; activeOnly?: boolean;
+}) {
   const sql = getSql();
-  const rows = (await sql`
-    SELECT DISTINCT sender_name FROM interactions ORDER BY sender_name
-  `) as { sender_name: string }[];
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let pi = 1;
+  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(new Date(filters.dateFrom).getTime()); }
+  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(new Date(filters.dateTo).getTime() + 86400000); }
+  if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
+  if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
+  if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
+  if (filters?.activeOnly) {
+    const ph = ACTIVE_PLAYERS.map((_, i) => `$${pi++}`).join(",");
+    conditions.push(`i.sender_name IN (${ph})`);
+    params.push(...ACTIVE_PLAYERS);
+  }
+  const join = filters?.recipient ? "JOIN interaction_recipients ir ON ir.interaction_id = i.id" : "";
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const rows = (await sql.query(
+    `SELECT DISTINCT i.sender_name FROM interactions i ${join} ${where} ORDER BY i.sender_name`,
+    params
+  )) as { sender_name: string }[];
   return rows;
 }
 
-export async function getRecipients(activeOnly?: boolean) {
+export async function getRecipients(filters?: {
+  dateFrom?: string; dateTo?: string; sender?: string; action?: string; note?: string; activeOnly?: boolean;
+}) {
   const sql = getSql();
-  if (activeOnly) {
-    const placeholders = ACTIVE_PLAYERS.map((_, i) => `$${i + 1}`).join(",");
-    const rows = (await sql.query(
-      `SELECT DISTINCT ir.recipient_name FROM interaction_recipients ir
-       JOIN interactions i ON i.id = ir.interaction_id
-       WHERE i.sender_name IN (${placeholders})
-       ORDER BY ir.recipient_name`,
-      ACTIVE_PLAYERS
-    )) as { recipient_name: string }[];
-    return rows;
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let pi = 1;
+  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(new Date(filters.dateFrom).getTime()); }
+  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(new Date(filters.dateTo).getTime() + 86400000); }
+  if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
+  if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
+  if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
+  if (filters?.activeOnly) {
+    const ph = ACTIVE_PLAYERS.map((_, i) => `$${pi++}`).join(",");
+    conditions.push(`i.sender_name IN (${ph})`);
+    params.push(...ACTIVE_PLAYERS);
   }
-  const rows = (await sql`
-    SELECT DISTINCT recipient_name FROM interaction_recipients ORDER BY recipient_name
-  `) as { recipient_name: string }[];
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const rows = (await sql.query(
+    `SELECT DISTINCT ir.recipient_name FROM interactions i
+     JOIN interaction_recipients ir ON ir.interaction_id = i.id
+     ${where} ORDER BY ir.recipient_name`,
+    params
+  )) as { recipient_name: string }[];
   return rows;
 }
 
-export async function getActionTypes(activeOnly?: boolean) {
+export async function getActionTypes(filters?: {
+  dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; note?: string; activeOnly?: boolean;
+}) {
   const sql = getSql();
-  if (activeOnly) {
-    const placeholders = ACTIVE_PLAYERS.map((_, i) => `$${i + 1}`).join(",");
-    const rows = (await sql.query(
-      `SELECT DISTINCT action_type FROM interactions
-       WHERE sender_name IN (${placeholders})
-       ORDER BY action_type`,
-      ACTIVE_PLAYERS
-    )) as { action_type: string }[];
-    return rows;
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let pi = 1;
+  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}`); params.push(new Date(filters.dateFrom).getTime()); }
+  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}`); params.push(new Date(filters.dateTo).getTime() + 86400000); }
+  if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
+  if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
+  if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
+  if (filters?.activeOnly) {
+    const ph = ACTIVE_PLAYERS.map((_, i) => `$${pi++}`).join(",");
+    conditions.push(`i.sender_name IN (${ph})`);
+    params.push(...ACTIVE_PLAYERS);
   }
-  const rows = (await sql`
-    SELECT DISTINCT action_type FROM interactions ORDER BY action_type
-  `) as { action_type: string }[];
+  const join = filters?.recipient ? "JOIN interaction_recipients ir ON ir.interaction_id = i.id" : "";
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const rows = (await sql.query(
+    `SELECT DISTINCT i.action_type FROM interactions i ${join} ${where} ORDER BY i.action_type`,
+    params
+  )) as { action_type: string }[];
   return rows;
 }
 

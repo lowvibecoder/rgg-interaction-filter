@@ -15,18 +15,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ru } from "date-fns/locale/ru";
 import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-
-interface FiltersProps {
-  senders: string[];
-  allRecipients: string[];
-  allActionTypes: string[];
-  activeRecipients: string[];
-  activeActionTypes: string[];
-  activePlayers: string[];
-  defaultMinDate: string | null;
-  defaultMaxDate: string | null;
-}
+import { useState, useEffect, useCallback } from "react";
 
 function useDebounce(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value);
@@ -37,13 +26,18 @@ function useDebounce(value: string, delay: number) {
   return debounced;
 }
 
+interface FiltersProps {
+  senders: string[];
+  recipients: string[];
+  actionTypes: string[];
+  defaultMinDate: string | null;
+  defaultMaxDate: string | null;
+}
+
 export default function InteractionsFilters({
   senders,
-  allRecipients,
-  allActionTypes,
-  activeRecipients,
-  activeActionTypes,
-  activePlayers,
+  recipients,
+  actionTypes,
   defaultMinDate,
   defaultMaxDate,
 }: FiltersProps) {
@@ -104,19 +98,6 @@ export default function InteractionsFilters({
 
   const activeOnly = urlActiveOnly;
 
-  const filteredSenders = useMemo(
-    () => (activeOnly ? senders.filter((s) => activePlayers.includes(s)) : senders),
-    [senders, activePlayers, activeOnly]
-  );
-  const filteredRecipients = useMemo(
-    () => (activeOnly ? activeRecipients : allRecipients),
-    [allRecipients, activeRecipients, activeOnly]
-  );
-  const filteredActionTypes = useMemo(
-    () => (activeOnly ? activeActionTypes : allActionTypes),
-    [allActionTypes, activeActionTypes, activeOnly]
-  );
-
   const dateFrom = urlDateFrom ? new Date(urlDateFrom) : parsedDefaultMin;
   const dateTo = urlDateTo ? new Date(urlDateTo) : parsedDefaultMax;
 
@@ -158,7 +139,7 @@ export default function InteractionsFilters({
             slotProps={{ textField: { size: "small", sx: { width: 130 } } }}
           />
           <Autocomplete
-            options={filteredSenders}
+            options={senders}
             value={urlSender || null}
             onChange={(_, v) => navigate({ sender: v || null })}
             renderInput={(params) => (
@@ -168,7 +149,7 @@ export default function InteractionsFilters({
             sx={{ minWidth: 220 }}
           />
           <Autocomplete
-            options={filteredRecipients}
+            options={recipients}
             value={urlRecipient || null}
             onChange={(_, v) => navigate({ recipient: v || null })}
             renderInput={(params) => (
@@ -186,7 +167,7 @@ export default function InteractionsFilters({
             sx={{ minWidth: 160 }}
           >
             <MenuItem value="">Все</MenuItem>
-            {filteredActionTypes.map((a) => (
+            {actionTypes.map((a) => (
               <MenuItem key={a} value={a}>
                 {a}
               </MenuItem>
