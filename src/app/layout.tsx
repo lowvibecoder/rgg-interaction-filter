@@ -6,6 +6,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import Box from "@mui/material/Box";
 import theme from "./theme";
 import Sidebar from "@/components/Sidebar";
+import "./globals.css";
 
 const rubik = Rubik({
   subsets: ["cyrillic", "latin"],
@@ -24,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={rubik.variable}>
-      <body style={{ backgroundColor: "#121212", margin: 0 }}>
+      <body>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
