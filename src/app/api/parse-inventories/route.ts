@@ -47,14 +47,22 @@ export async function POST(request: Request) {
     }
 
     let totalInserted = 0;
-    for (const item of allItems) {
-      await sql`
-        INSERT INTO player_items (player_name, item_name, item_type, quantity)
-        VALUES (${item.playerName}, ${item.itemName}, ${item.itemType}, ${item.quantity})
-        ON CONFLICT (player_name, item_name, item_type)
-        DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()
-      `;
-      totalInserted++;
+    // Batch insert in chunks of 50 to avoid oversized queries
+    for (let i = 0; i < allItems.length; i += 50) {
+      const chunk = allItems.slice(i, i + 50);
+      const values = chunk.map((_, j) => {
+        const base = j * 4;
+        return `($${base + 1},$${base + 2},$${base + 3},$${base + 4})`;
+      }).join(",");
+      const params = chunk.flatMap((item) => [item.playerName, item.itemName, item.itemType, item.quantity]);
+      await sql.query(
+        `INSERT INTO player_items (player_name, item_name, item_type, quantity)
+         VALUES ${values}
+         ON CONFLICT (player_name, item_name, item_type)
+         DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()`,
+        params
+      );
+      totalInserted += chunk.length;
     }
 
     return NextResponse.json({
