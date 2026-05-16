@@ -18,6 +18,7 @@ export default function InventorySearch() {
         if (e.target.value) params.set("q", e.target.value);
         else params.delete("q");
         params.delete("item");
+        params.delete("panel");
         router.push(`/inventories?${params.toString()}`);
       }}
       sx={{ minWidth: 300 }}

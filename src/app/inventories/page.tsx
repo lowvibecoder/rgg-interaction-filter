@@ -14,7 +14,7 @@ interface PageProps {
 }
 
 export default async function InventoriesPage({ searchParams }: PageProps) {
-  const { item, q } = await searchParams;
+  const { item, q, panel } = await searchParams;
   const [allItems, gameItems, lastUpdated, overview, overviewLastUpdated] = await Promise.all([
     getInventoryItems(q || undefined),
     getGameItems(),
@@ -40,6 +40,8 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
       selectedItem={item || ""}
       lastUpdated={lastUpdated?.toISOString() ?? null}
       overviewLastUpdated={overviewLastUpdated?.toISOString() ?? null}
+      q={q || ""}
+      panel={panel || ""}
     />
   );
 }
