@@ -24,4 +24,4 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.PARSE_SECRET }}" \
             -H "Content-Type: application/json")
           echo "$RESPONSE"
-          echo "$RESPONSE" | grep -q '"success"' || exit 1
+          echo "$RESPONSE" | grep -q '"success"' && echo "OK" || { echo "INVENTORY PARSE FAILED"; exit 1; }

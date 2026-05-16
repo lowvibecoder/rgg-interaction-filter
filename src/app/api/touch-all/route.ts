@@ -7,31 +7,61 @@ import { upsertInteraction, upsertRecipients, upsertPlayerOverview } from "@/lib
 import { parseInventoryOverview } from "@/lib/inventoryOverviewParser";
 
 export async function GET() {
-  const sql = neon(process.env.POSTGRES_URL!);
+  try {
+    const sql = neon(process.env.POSTGRES_URL!);
 
-  const now = Date.now();
-  const tasks: string[] = [];
+    // Ensure all tables exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS player_items (
+        player_name TEXT NOT NULL,
+        item_name TEXT NOT NULL,
+        item_type TEXT NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (player_name, item_name, item_type)
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS player_overview (
+        player_name TEXT PRIMARY KEY,
+        coins INTEGER NOT NULL DEFAULT 0,
+        tears INTEGER NOT NULL DEFAULT 0,
+        effects INTEGER NOT NULL DEFAULT 0,
+        items INTEGER NOT NULL DEFAULT 0,
+        special_rolls INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
 
-  // Check interactions staleness
-  const intRows = await sql`SELECT MAX(fetched_at) as last_update FROM interactions`;
-  const intLast = intRows[0]?.last_update as Date | null;
-  if (!intLast || now - new Date(intLast).getTime() > 120000) {
-    tasks.push("interactions");
-  }
+    const now = Date.now();
+    const tasks: string[] = [];
 
-  // Check inventories staleness
-  const invRows = await sql`SELECT MAX(updated_at) as last_update FROM player_items`;
-  const invLast = invRows[0]?.last_update as Date | null;
-  if (!invLast || now - new Date(invLast).getTime() > 120000) {
-    tasks.push("inventories");
-  }
+    // Check interactions staleness
+    try {
+      const intRows = await sql`SELECT MAX(fetched_at) as last_update FROM interactions`;
+      const intLast = intRows[0]?.last_update as Date | null;
+      if (!intLast || now - new Date(intLast).getTime() > 120000) {
+        tasks.push("interactions");
+      }
+    } catch { tasks.push("interactions"); }
 
-  // Check player overview staleness
-  const ovRows = await sql`SELECT MAX(updated_at) as last_update FROM player_overview`;
-  const ovLast = ovRows[0]?.last_update as Date | null;
-  if (!ovLast || now - new Date(ovLast).getTime() > 120000) {
-    tasks.push("overview");
-  }
+    // Check inventories staleness
+    try {
+      const invRows = await sql`SELECT MAX(updated_at) as last_update FROM player_items`;
+      const invLast = invRows[0]?.last_update as Date | null;
+      if (!invLast || now - new Date(invLast).getTime() > 120000) {
+        tasks.push("inventories");
+      }
+    } catch { tasks.push("inventories"); }
+
+    // Check player overview staleness
+    try {
+      const ovRows = await sql`SELECT MAX(updated_at) as last_update FROM player_overview`;
+      const ovLast = ovRows[0]?.last_update as Date | null;
+      if (!ovLast || now - new Date(ovLast).getTime() > 120000) {
+        tasks.push("overview");
+      }
+    } catch { tasks.push("overview"); }
 
   const results: Record<string, unknown> = {};
 
@@ -96,4 +126,7 @@ export async function GET() {
   );
 
   return NextResponse.json({ touched: tasks, results, timestamp: new Date().toISOString() });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
