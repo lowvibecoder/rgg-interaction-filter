@@ -347,3 +347,52 @@ export async function getInteractionsLastUpdated(): Promise<Date | null> {
   ` as { last_update: Date | null }[];
   return rows[0]?.last_update || null;
 }
+
+// ── Player Overview ──
+
+export async function upsertPlayerOverview(
+  playerName: string,
+  coins: number,
+  tears: number,
+  effects: number,
+  items: number,
+  specialRolls: number
+) {
+  const sql = getSql();
+  await sql`
+    INSERT INTO player_overview (player_name, coins, tears, effects, items, special_rolls, updated_at)
+    VALUES (${playerName}, ${coins}, ${tears}, ${effects}, ${items}, ${specialRolls}, NOW())
+    ON CONFLICT (player_name)
+    DO UPDATE SET
+      coins = EXCLUDED.coins,
+      tears = EXCLUDED.tears,
+      effects = EXCLUDED.effects,
+      items = EXCLUDED.items,
+      special_rolls = EXCLUDED.special_rolls,
+      updated_at = NOW()
+  `;
+}
+
+export async function getPlayerOverviews(): Promise<{
+  player_name: string;
+  coins: number;
+  tears: number;
+  effects: number;
+  items: number;
+  special_rolls: number;
+}[]> {
+  const sql = getSql();
+  return await sql`
+    SELECT player_name, coins, tears, effects, items, special_rolls
+    FROM player_overview
+    ORDER BY player_name
+  ` as { player_name: string; coins: number; tears: number; effects: number; items: number; special_rolls: number }[];
+}
+
+export async function getPlayerOverviewLastUpdated(): Promise<Date | null> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT MAX(updated_at) as last_update FROM player_overview
+  ` as { last_update: Date | null }[];
+  return rows[0]?.last_update || null;
+}

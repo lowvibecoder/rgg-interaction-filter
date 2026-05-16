@@ -42,3 +42,13 @@ CREATE TABLE IF NOT EXISTS player_items (
 
 CREATE INDEX IF NOT EXISTS idx_player_items_name ON player_items(item_name);
 CREATE INDEX IF NOT EXISTS idx_player_items_player ON player_items(player_name);
+
+CREATE TABLE IF NOT EXISTS player_overview (
+  player_name TEXT PRIMARY KEY,
+  coins INTEGER NOT NULL DEFAULT 0,
+  tears INTEGER NOT NULL DEFAULT 0,
+  effects INTEGER NOT NULL DEFAULT 0,
+  items INTEGER NOT NULL DEFAULT 0,
+  special_rolls INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);

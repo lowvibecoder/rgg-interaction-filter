@@ -3,7 +3,8 @@ import { neon } from "@neondatabase/serverless";
 import { ACTIVE_PLAYERS } from "@/lib/players";
 import { parseInventoryPage } from "@/lib/inventoryParser";
 import { parseInteractions } from "@/lib/parser";
-import { upsertInteraction, upsertRecipients } from "@/lib/db";
+import { upsertInteraction, upsertRecipients, upsertPlayerOverview } from "@/lib/db";
+import { parseInventoryOverview } from "@/lib/inventoryOverviewParser";
 
 export async function GET() {
   const sql = neon(process.env.POSTGRES_URL!);
@@ -23,6 +24,13 @@ export async function GET() {
   const invLast = invRows[0]?.last_update as Date | null;
   if (!invLast || now - new Date(invLast).getTime() > 120000) {
     tasks.push("inventories");
+  }
+
+  // Check player overview staleness
+  const ovRows = await sql`SELECT MAX(updated_at) as last_update FROM player_overview`;
+  const ovLast = ovRows[0]?.last_update as Date | null;
+  if (!ovLast || now - new Date(ovLast).getTime() > 120000) {
+    tasks.push("overview");
   }
 
   const results: Record<string, unknown> = {};
@@ -75,6 +83,16 @@ export async function GET() {
             inserted++;
           }
           results.inventories = { success: true, total: inserted, players: ACTIVE_PLAYERS.length };
+        } else if (task === "overview") {
+          const res = await fetch("https://rgg.land/inventories");
+          const html = await res.text();
+          const players = parseInventoryOverview(html);
+          let inserted = 0;
+          for (const p of players) {
+            await upsertPlayerOverview(p.playerName, p.coins, p.tears, p.effects, p.items, p.specialRolls);
+            inserted++;
+          }
+          results.overview = { success: true, count: inserted };
         }
       } catch (e: unknown) {
         results[task] = { error: String(e) };

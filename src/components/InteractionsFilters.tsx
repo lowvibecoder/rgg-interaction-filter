@@ -8,7 +8,9 @@ import {
   Autocomplete,
   FormControlLabel,
   Checkbox,
+  IconButton,
 } from "@mui/material";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -162,6 +164,14 @@ export default function InteractionsFilters({
             size="small"
             sx={{ minWidth: 220 }}
           />
+          <IconButton
+            onClick={() => navigate({ sender: urlRecipient || null, recipient: urlSender || null })}
+            sx={{ alignSelf: "center", mt: 0.5 }}
+            size="small"
+            title="Поменять местами"
+          >
+            <SwapHorizIcon />
+          </IconButton>
           <Autocomplete
             options={recipients}
             value={urlRecipient || null}
