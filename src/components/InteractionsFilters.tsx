@@ -9,8 +9,11 @@ import {
   FormControlLabel,
   Checkbox,
   IconButton,
+  Box,
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -99,6 +102,7 @@ export default function InteractionsFilters({
   // Local state for note (debounced)
   const [noteInput, setNoteInput] = useState(urlNote);
   const debouncedNote = useDebounce(noteInput, 400);
+  const [pinned, setPinned] = useState(false);
 
   // Sync debounced note to URL
   useEffect(() => {
@@ -128,96 +132,117 @@ export default function InteractionsFilters({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ru} localeText={ruRU.components.MuiLocalizationProvider.defaultProps.localeText}>
-      <Stack spacing={2}>
-        <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2 }}>
-          <DatePicker
-            label="Дата с"
-            format="dd.MM.yy"
-            value={dateFrom}
-            onChange={(v) => navigate({ dateFrom: v ? toDateStr(v) : null })}
-            views={currentMonthSame ? ["day"] : undefined}
-            view={currentMonthSame ? "day" : undefined}
-            openTo={currentMonthSame ? "day" : undefined}
-            minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
-            maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{ textField: { size: "small", sx: { width: 135 } } }}
-          />
-          <DatePicker
-            label="Дата по"
-            format="dd.MM.yy"
-            value={dateTo}
-            onChange={(v) => navigate({ dateTo: v ? v.toISOString().slice(0, 10) : null })}
-            views={currentMonthSame ? ["day"] : undefined}
-            view={currentMonthSame ? "day" : undefined}
-            openTo={currentMonthSame ? "day" : undefined}
-            minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
-            maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
-            slotProps={{ textField: { size: "small", sx: { width: 135 } } }}
-          />
-          <Autocomplete
-            options={senders}
-            value={urlSender || null}
-            onChange={(_, v) => navigate({ sender: v || null })}
-            renderInput={(params) => (
-              <TextField {...params} label="От кого" size="small" sx={{ minWidth: 220 }} />
-            )}
-            size="small"
-            sx={{ minWidth: 220 }}
-          />
-          <IconButton
-            onClick={() => navigate({ sender: urlRecipient || null, recipient: urlSender || null })}
-            sx={{ alignSelf: "center", mt: 0.5 }}
-            size="small"
-            title="Поменять местами"
-          >
-            <SwapHorizIcon />
-          </IconButton>
-          <Autocomplete
-            options={recipients}
-            value={urlRecipient || null}
-            onChange={(_, v) => navigate({ recipient: v || null })}
-            renderInput={(params) => (
-              <TextField {...params} label="Кому" size="small" sx={{ minWidth: 220 }} />
-            )}
-            size="small"
-            sx={{ minWidth: 220 }}
-          />
-          <TextField
-            select
-            label="Действие"
-            size="small"
-            value={urlAction}
-            onChange={(e) => navigate({ action: e.target.value || null })}
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">Все</MenuItem>
-            {actionTypes.map((a) => (
-              <MenuItem key={a} value={a}>
-                {a}
-              </MenuItem>
-            ))}
-          </TextField>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={activeOnly}
-                onChange={(e) => navigate({ activeOnly: e.target.checked ? "true" : "false" })}
-              />
-            }
-            label="Только активные игроки"
-          />
-          <TextField
-            label="Поиск в тексте"
-            size="small"
-            value={noteInput}
-            onChange={(e) => setNoteInput(e.target.value)}
-            sx={{ minWidth: 200 }}
-          />
-          <Button variant="outlined" onClick={clearFilters}>
-            Сбросить
-          </Button>
+      <Box
+        sx={{
+          position: pinned ? "sticky" : "static",
+          top: 0,
+          zIndex: pinned ? 100 : "auto",
+          bgcolor: pinned ? "background.default" : "transparent",
+          pt: pinned ? 1 : 0,
+          pb: pinned ? 1 : 0,
+          borderBottom: pinned ? 1 : 0,
+          borderColor: pinned ? "divider" : "transparent",
+        }}
+      >
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2, alignItems: "center" }}>
+            <DatePicker
+              label="Дата с"
+              format="dd.MM.yy"
+              value={dateFrom}
+              onChange={(v) => navigate({ dateFrom: v ? toDateStr(v) : null })}
+              views={currentMonthSame ? ["day"] : undefined}
+              view={currentMonthSame ? "day" : undefined}
+              openTo={currentMonthSame ? "day" : undefined}
+              minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
+              maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
+              slotProps={{ textField: { size: "small", sx: { width: 135 } } }}
+            />
+            <DatePicker
+              label="Дата по"
+              format="dd.MM.yy"
+              value={dateTo}
+              onChange={(v) => navigate({ dateTo: v ? v.toISOString().slice(0, 10) : null })}
+              views={currentMonthSame ? ["day"] : undefined}
+              view={currentMonthSame ? "day" : undefined}
+              openTo={currentMonthSame ? "day" : undefined}
+              minDate={currentMonthSame ? parsedDefaultMin ?? undefined : undefined}
+              maxDate={currentMonthSame ? parsedDefaultMax ?? undefined : undefined}
+              slotProps={{ textField: { size: "small", sx: { width: 135 } } }}
+            />
+            <Autocomplete
+              options={senders}
+              value={urlSender || null}
+              onChange={(_, v) => navigate({ sender: v || null })}
+              renderInput={(params) => (
+                <TextField {...params} label="От кого" size="small" sx={{ minWidth: 220 }} />
+              )}
+              size="small"
+              sx={{ minWidth: 220 }}
+            />
+            <IconButton
+              onClick={() => navigate({ sender: urlRecipient || null, recipient: urlSender || null })}
+              sx={{ alignSelf: "center", mt: 0.5 }}
+              size="small"
+              title="Поменять местами"
+            >
+              <SwapHorizIcon />
+            </IconButton>
+            <Autocomplete
+              options={recipients}
+              value={urlRecipient || null}
+              onChange={(_, v) => navigate({ recipient: v || null })}
+              renderInput={(params) => (
+                <TextField {...params} label="Кому" size="small" sx={{ minWidth: 220 }} />
+              )}
+              size="small"
+              sx={{ minWidth: 220 }}
+            />
+            <TextField
+              select
+              label="Действие"
+              size="small"
+              value={urlAction}
+              onChange={(e) => navigate({ action: e.target.value || null })}
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="">Все</MenuItem>
+              {actionTypes.map((a) => (
+                <MenuItem key={a} value={a}>
+                  {a}
+                </MenuItem>
+              ))}
+            </TextField>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={activeOnly}
+                  onChange={(e) => navigate({ activeOnly: e.target.checked ? "true" : "false" })}
+                />
+              }
+              label="Только активные игроки"
+            />
+            <TextField
+              label="Поиск в тексте"
+              size="small"
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              sx={{ minWidth: 200 }}
+            />
+            <Button variant="outlined" onClick={clearFilters}>
+              Сбросить
+            </Button>
+            <IconButton
+              onClick={() => setPinned((p) => !p)}
+              size="small"
+              title={pinned ? "Открепить" : "Закрепить"}
+              color={pinned ? "primary" : "default"}
+            >
+              {pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+            </IconButton>
+          </Stack>
         </Stack>
-      </Stack>
+      </Box>
     </LocalizationProvider>
   );
 }
