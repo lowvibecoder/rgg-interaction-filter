@@ -54,22 +54,17 @@ export async function GET() {
           }
           results.interactions = { success: true, count: inserted, parsed: parsed.length };
         } else if (task === "inventories") {
-          // Direct call to inventory parse logic
-          const batchSize = 5;
           const allItems: { playerName: string; itemName: string; itemType: string; quantity: number }[] = [];
-          for (let i = 0; i < ACTIVE_PLAYERS.length; i += batchSize) {
-            const batch = ACTIVE_PLAYERS.slice(i, i + batchSize);
-            const batchResults = await Promise.allSettled(
-              batch.map(async (player) => {
-                const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
-                  signal: AbortSignal.timeout(8000),
-                });
-                return parseInventoryPage(await res.text(), player);
-              })
-            );
-            for (const r of batchResults) {
-              if (r.status === "fulfilled") allItems.push(...r.value);
-            }
+          const batchResults = await Promise.allSettled(
+            ACTIVE_PLAYERS.map(async (player) => {
+              const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
+                signal: AbortSignal.timeout(5000),
+              });
+              return parseInventoryPage(await res.text(), player);
+            })
+          );
+          for (const r of batchResults) {
+            if (r.status === "fulfilled") allItems.push(...r.value);
           }
           await sql`DELETE FROM player_items`;
           let inserted = 0;

@@ -30,25 +30,21 @@ export async function POST(request: Request) {
   const allItems: { playerName: string; itemName: string; itemType: string; quantity: number }[] = [];
   const errors: string[] = [];
 
-  // Process players in batches of 5
-  const batchSize = 5;
-  for (let i = 0; i < ACTIVE_PLAYERS.length; i += batchSize) {
-    const batch = ACTIVE_PLAYERS.slice(i, i + batchSize);
-    const results = await Promise.allSettled(
-      batch.map(async (player) => {
-        const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
-          signal: AbortSignal.timeout(10000),
-        });
-        const html = await res.text();
-        return parseInventoryPage(html, player);
-      })
-    );
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        allItems.push(...result.value);
-      } else {
-        errors.push("batch failed");
-      }
+  // Process all players in parallel with a shorter timeout
+  const results = await Promise.allSettled(
+    ACTIVE_PLAYERS.map(async (player) => {
+      const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      const html = await res.text();
+      return parseInventoryPage(html, player);
+    })
+  );
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      allItems.push(...result.value);
+    } else {
+      errors.push("batch failed");
     }
   }
 
