@@ -433,7 +433,7 @@ export default function InventoriesPageClient({
                           <>
                             <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
                             <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, width: 60, whiteSpace: "nowrap" }}>Кол-во</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Игроки</TableCell>
                           </>
                         ) : (
@@ -441,7 +441,7 @@ export default function InventoriesPageClient({
                             <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, width: 60, whiteSpace: "nowrap" }}>Кол-во</TableCell>
                           </>
                         )}
                       </TableRow>
@@ -462,7 +462,7 @@ export default function InventoriesPageClient({
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
-                          <TableCell align="right" sx={{ width: 50 }}>
+                          <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>
                             {players[0].item_type === "effect" ? players.length : players.reduce((s, p) => s + p.total_quantity, 0)}
                           </TableCell>
                           <TableCell>
@@ -490,7 +490,7 @@ export default function InventoriesPageClient({
                                 sx={{ height: 24, fontSize: "0.85rem" }}
                               />
                             </TableCell>
-                            <TableCell align="right">{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
+                            <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
                           </TableRow>
                         ))
                       )}
@@ -546,7 +546,7 @@ export default function InventoriesPageClient({
                             <TableCell sx={{ fontWeight: 600, width: 100 }}>Игрок</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
                             <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, width: 60, whiteSpace: "nowrap" }}>Кол-во</TableCell>
                           </>
                         )}
                       </TableRow>
@@ -567,7 +567,7 @@ export default function InventoriesPageClient({
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
-                          <TableCell align="right" sx={{ width: 50 }}>{item.totalQuantity}</TableCell>
+                          <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>{item.totalQuantity}</TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                               {item.players.map((p) => (
@@ -592,7 +592,7 @@ export default function InventoriesPageClient({
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
-                          <TableCell align="right" sx={{ width: 50 }}>{item.itemType === "effect" ? 1 : item.quantity}</TableCell>
+                          <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>{item.itemType === "effect" ? 1 : item.quantity}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
