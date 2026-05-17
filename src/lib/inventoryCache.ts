@@ -49,8 +49,12 @@ export async function setPlayerOverviews(overviews: PlayerOverview[]) {
 export async function getAllInventoryItems(): Promise<InventoryItem[]> {
   const r = getRedis();
   if (!r) return [];
-  const raw = await r.get<string>(INV_ALL_KEY);
-  return raw ? JSON.parse(raw) : [];
+  try {
+    const raw = await r.get<string>(INV_ALL_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getUniqueItemNames(): Promise<string[]> {
@@ -103,17 +107,25 @@ export async function getPlayerInventory(playerName: string): Promise<{
 export async function getPlayerOverviews(): Promise<PlayerOverview[]> {
   const r = getRedis();
   if (!r) return [];
-  const raw = await r.get<string>(INV_OVERVIEW_KEY);
-  return raw ? JSON.parse(raw) : [];
+  try {
+    const raw = await r.get<string>(INV_OVERVIEW_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getInventoryLastUpdated(): Promise<Date | null> {
   const r = getRedis();
   if (!r) return null;
-  const raw = await r.get<string>(INV_META_KEY);
-  if (!raw) return null;
-  const meta: InventoryMeta = JSON.parse(raw);
-  return new Date(meta.updatedAt);
+  try {
+    const raw = await r.get<string>(INV_META_KEY);
+    if (!raw) return null;
+    const meta: InventoryMeta = JSON.parse(raw);
+    return new Date(meta.updatedAt);
+  } catch {
+    return null;
+  }
 }
 
 export async function getPlayerOverviewLastUpdated(): Promise<Date | null> {
