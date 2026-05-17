@@ -263,12 +263,21 @@ export default function InventoriesPageClient({
     if (hideEffects) filtered = filtered.filter((i) => i.itemType !== "effect");
     if (hideItems) filtered = filtered.filter((i) => i.itemType !== "item");
     if (hideSpecialRolls) filtered = filtered.filter((i) => i.itemType !== "special_roll");
+    if (localQ) {
+      const lower = localQ.toLowerCase();
+      filtered = filtered.filter((i) => {
+        if (i.itemName.toLowerCase().includes(lower)) return true;
+        const desc = gameItemMap[i.itemName] || "";
+        if (desc.toLowerCase().includes(lower)) return true;
+        return false;
+      });
+    }
     return filtered.sort((a, b) =>
       a.playerName.localeCompare(b.playerName) ||
       a.itemType.localeCompare(b.itemType) ||
       a.itemName.localeCompare(b.itemName)
     );
-  }, [allItemsWithTimers, hideEffects, hideItems, hideSpecialRolls]);
+  }, [allItemsWithTimers, hideEffects, hideItems, hideSpecialRolls, localQ, gameItemMap]);
 
   const summedItems = useMemo(() => {
     const map = new Map<string, { itemName: string; itemType: string; totalQuantity: number; players: string[]; timer: number | null }>();
@@ -298,11 +307,20 @@ export default function InventoriesPageClient({
     if (hideEffects) result = result.filter((i) => i.itemType !== "effect");
     if (hideItems) result = result.filter((i) => i.itemType !== "item");
     if (hideSpecialRolls) result = result.filter((i) => i.itemType !== "special_roll");
+    if (localQ) {
+      const lower = localQ.toLowerCase();
+      result = result.filter((i) => {
+        if (i.itemName.toLowerCase().includes(lower)) return true;
+        const desc = gameItemMap[i.itemName] || "";
+        if (desc.toLowerCase().includes(lower)) return true;
+        return false;
+      });
+    }
     return result.sort((a, b) =>
       a.itemType.localeCompare(b.itemType) ||
       a.itemName.localeCompare(b.itemName)
     );
-  }, [allInventoryItems, gameItemMap, hideEffects, hideItems, hideSpecialRolls]);
+  }, [allInventoryItems, gameItemMap, hideEffects, hideItems, hideSpecialRolls, localQ]);
 
   const togglePanel = useCallback((open: boolean) => {
     const params = new URLSearchParams(searchParams.toString());
