@@ -427,6 +427,7 @@ export default function InventoriesPageClient({
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
                       </TableRow>
@@ -435,6 +436,7 @@ export default function InventoriesPageClient({
                       {players.map((p) => (
                         <TableRow key={p.player_name + p.item_type} sx={{ "&:last-of-type td": { border: 0 } }}>
                           <TableCell>{p.player_name}</TableCell>
+                          <TableCell>{selectedItem}</TableCell>
                           <TableCell>
                             <Chip
                               label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
