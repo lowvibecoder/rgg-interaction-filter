@@ -6,7 +6,7 @@ import { invalidateAllCache, getCachedInventoryLastUpdated, getCachedInteraction
 import { refreshInteractionCache, setInteractionHash } from "@/lib/interactionCache";
 import { getRedis } from "@/lib/redis";
 
-const INV_REFRESH_MS = 15 * 60 * 1000; // 15 minutes
+const INV_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
 const INT_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
 
 async function fetchWithHash(url: string): Promise<{ html: string; hash: string } | null> {
