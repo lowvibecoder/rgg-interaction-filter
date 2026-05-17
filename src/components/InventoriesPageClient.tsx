@@ -331,8 +331,8 @@ export default function InventoriesPageClient({
               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                 Все предметы ({sortedInventoryItems.length})
               </Typography>
-              <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxHeight: 600, overflow: "auto" }}>
-                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "0.8rem" } }}>
+              <TableContainer component={Paper} sx={{ bgcolor: "background.paper" }}>
+                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.75, py: 0.5, fontSize: "0.8rem" } }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
@@ -345,7 +345,11 @@ export default function InventoriesPageClient({
                     {sortedInventoryItems.map((item, idx) => (
                       <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
                         <TableCell>{item.playerName}</TableCell>
-                        <TableCell>{item.itemName}</TableCell>
+                        <TableCell>
+                          <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
+                            <span>{item.itemName}</span>
+                          </Tooltip>
+                        </TableCell>
                         <TableCell>
                           <Chip
                             label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
