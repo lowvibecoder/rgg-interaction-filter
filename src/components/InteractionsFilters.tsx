@@ -150,7 +150,7 @@ export default function InteractionsFilters({
   const controls = (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ru} localeText={ruRU.components.MuiLocalizationProvider.defaultProps.localeText}>
       <Stack spacing={2}>
-        <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 2, alignItems: "center" }}>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, alignItems: "center" }}>
           <DatePicker
             label="Дата с"
             format="dd.MM.yy"
@@ -187,7 +187,6 @@ export default function InteractionsFilters({
           />
           <IconButton
             onClick={() => navigate({ sender: urlRecipient || null, recipient: urlSender || null })}
-            sx={{ alignSelf: "center", mt: 0.5 }}
             size="small"
             title="Поменять местами"
           >

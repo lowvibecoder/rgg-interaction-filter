@@ -59,21 +59,14 @@ export function parseInventoryPage(html: string, playerName: string): ParsedInve
       pos = itemEnd + 5;
     }
 
-    // Deduplicate: effects don't stack (keep first occurrence with qty 1),
-    // ordinary items and special rolls sum quantities
+    // Deduplicate: sum quantities for all item types
     const merged = new Map<string, { name: string; quantity: number }>();
     for (const item of sectionItems) {
-      if (section.type === "effect") {
-        if (!merged.has(item.name)) {
-          merged.set(item.name, { name: item.name, quantity: 1 });
-        }
+      const existing = merged.get(item.name);
+      if (existing) {
+        existing.quantity += item.quantity;
       } else {
-        const existing = merged.get(item.name);
-        if (existing) {
-          existing.quantity += item.quantity;
-        } else {
-          merged.set(item.name, { name: item.name, quantity: item.quantity });
-        }
+        merged.set(item.name, { name: item.name, quantity: item.quantity });
       }
     }
 

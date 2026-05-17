@@ -18,7 +18,10 @@ export async function GET(
 
   return NextResponse.json({
     player: playerName,
-    items,
+    items: items.map((item) => ({
+      ...item,
+      quantity: Number(item.quantity),
+    })),
     activePlayers: ACTIVE_PLAYERS,
   }, {
     headers: {
