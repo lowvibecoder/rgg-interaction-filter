@@ -332,33 +332,33 @@ export default function InventoriesPageClient({
                 Все предметы ({sortedInventoryItems.length})
               </Typography>
               <TableContainer component={Paper} sx={{ bgcolor: "background.paper" }}>
-                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.75, py: 0.5, fontSize: "0.8rem" } }}>
+                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "0.75rem", whiteSpace: "nowrap" } }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: 100 }}>Игрок</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {sortedInventoryItems.map((item, idx) => (
                       <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
-                        <TableCell>{item.playerName}</TableCell>
+                        <TableCell sx={{ width: 100 }}>{item.playerName}</TableCell>
                         <TableCell>
                           <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
                             <span>{item.itemName}</span>
                           </Tooltip>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ width: 70 }}>
                           <Chip
                             label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
                             size="small"
                             color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
-                            sx={{ height: 20, fontSize: "0.7rem" }}
+                            sx={{ height: 18, fontSize: "0.65rem" }}
                           />
                         </TableCell>
-                        <TableCell align="right">{item.quantity}</TableCell>
+                        <TableCell align="right" sx={{ width: 50 }}>{item.quantity}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
