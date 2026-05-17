@@ -22,14 +22,16 @@ export default function InventoryFilter({ items, gameItemMap }: { items: string[
         router.push(`/inventories?${params.toString()}`);
       }}
       renderInput={(params) => (
-        <TextField {...params} label="Выберите содержимое инвентаря" variant="outlined" size="small" />
+        <TextField {...params} label="Выберите содержимое инвентаря" variant="outlined" size="small"
+          sx={{ "& .MuiInputBase-input": { fontSize: "1rem" }, "& .MuiInputLabel-root": { fontSize: "1rem" } }}
+        />
       )}
       renderOption={(props, option) => (
         <Tooltip title={gameItemMap[option] || ""} arrow placement="right">
-          <li {...props}>{option}</li>
+          <li {...props} style={{ fontSize: "1rem" }}>{option}</li>
         </Tooltip>
       )}
-      sx={{ minWidth: 350, maxWidth: 600 }}
+      sx={{ minWidth: 350, maxWidth: 600, "& .MuiAutocomplete-input": { fontSize: "1rem" } }}
     />
   );
 }

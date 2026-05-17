@@ -5,11 +5,12 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Box, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Chip, IconButton, Dialog, DialogTitle,
-  DialogContent, DialogActions, Button,
+  DialogContent, DialogActions, Button, ToggleButtonGroup, ToggleButton,
   List, ListItemButton, ListItemText, CircularProgress, Tooltip,
 } from "@mui/material";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import InventorySearch from "./InventorySearch";
 import InventoryFilter from "./InventoryFilter";
 import LiveTimestamp from "./LiveTimestamp";
@@ -62,17 +63,34 @@ function filterItems(items: string[], q: string, gameItemMap: Record<string, str
   });
 }
 
+function extractTimer(description: string, itemName: string): number | null {
+  if (!description) return null;
+  const patterns = [
+    new RegExp(`${itemName}.*?(\\d+)\\s*сек`, "i"),
+    new RegExp(`таймера\\s+${itemName}.*?(\\d+)\\s*сек`, "i"),
+    new RegExp(`${itemName}.*?(\\d+)\\s*мин`, "i"),
+    new RegExp(`таймера\\s+${itemName}.*?(\\d+)\\s*мин`, "i"),
+  ];
+  for (const re of patterns) {
+    const m = description.match(re);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
 const ACTIVE_SET = new Set(ACTIVE_PLAYERS);
 
 function ItemLine({ item, description, onCopy }: { item: PlayerInventoryItem; description: string; onCopy: (text: string) => void }) {
+  const timer = item.item_type === "effect" ? extractTimer(description, item.item_name) : null;
+  const displayName = timer !== null ? `${item.item_name} (${timer})` : item.item_name;
   return (
     <Tooltip title={description || ""} arrow placement="right">
       <Typography
         variant="body2"
         onClick={() => onCopy(item.item_name)}
-        sx={{ fontSize: "0.8rem", cursor: "pointer", "&:hover": { color: "primary.main" }, userSelect: "none" }}
+        sx={{ fontSize: "0.9rem", cursor: "pointer", "&:hover": { color: "primary.main" }, userSelect: "none" }}
       >
-        {item.item_name}{item.quantity > 1 ? ` x${item.quantity}` : ""}
+        {displayName}{item.quantity > 1 ? ` x${item.quantity}` : ""}
       </Typography>
     </Tooltip>
   );
@@ -89,7 +107,6 @@ function PlayerInventoryModal({ player, gameItemMap, onClose }: {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!player) { setData(null); return; }
     setLoading(true);
     fetch(`/api/inventory/${encodeURIComponent(player)}`)
@@ -132,11 +149,19 @@ function PlayerInventoryModal({ player, gameItemMap, onClose }: {
               <ListItemButton
                 key={name}
                 selected={name === player}
+                onClick={() => {
+                  setLoading(true);
+                  setData(null);
+                  fetch(`/api/inventory/${encodeURIComponent(name)}`)
+                    .then((r) => r.json())
+                    .then((d) => { setData(d); setLoading(false); })
+                    .catch(() => setLoading(false));
+                }}
                 sx={{ borderRadius: 1, py: 0.15 }}
               >
                 <ListItemText
                   primary={name}
-                  sx={{ "& .MuiListItemText-primary": { fontSize: "0.85rem" } }}
+                  sx={{ "& .MuiListItemText-primary": { fontSize: "0.9rem" } }}
                 />
               </ListItemButton>
             ))}
@@ -188,25 +213,42 @@ export default function InventoriesPageClient({
 
   const urlQ = searchParams.get("q");
   const panel = searchParams.get("panel") ?? ssrPanel;
+  const viewMode = searchParams.get("view") ?? "items";
   const [localQ, setLocalQ] = useState(urlQ ?? ssrQ);
 
-  // Sync localQ from URL changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalQ(urlQ ?? ssrQ);
   }, [urlQ, ssrQ]);
 
   const showSearchArea = localQ.length > 0 || selectedItem.length > 0;
   const showOverview = showSearchArea ? panel === "open" : panel !== "closed";
 
-  // Always filter to active players only
   const filteredOverview = useMemo(() => overview.filter((p) => ACTIVE_SET.has(p.player_name)), [overview]);
-
   const filteredItems = useMemo(() => filterItems(allItems, localQ, gameItemMap), [allItems, localQ, gameItemMap]);
 
   const sortedInventoryItems = useMemo(() => {
     return [...allInventoryItems].sort((a, b) =>
       a.playerName.localeCompare(b.playerName) ||
+      a.itemType.localeCompare(b.itemType) ||
+      a.itemName.localeCompare(b.itemName)
+    );
+  }, [allInventoryItems]);
+
+  const summedItems = useMemo(() => {
+    const map = new Map<string, { itemName: string; itemType: string; totalQuantity: number; players: string[] }>();
+    for (const item of allInventoryItems) {
+      const key = `${item.itemName}||${item.itemType}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.totalQuantity += item.quantity;
+        if (!existing.players.includes(item.playerName)) {
+          existing.players.push(item.playerName);
+        }
+      } else {
+        map.set(key, { itemName: item.itemName, itemType: item.itemType, totalQuantity: item.quantity, players: [item.playerName] });
+      }
+    }
+    return [...map.values()].sort((a, b) =>
       a.itemType.localeCompare(b.itemType) ||
       a.itemName.localeCompare(b.itemName)
     );
@@ -233,7 +275,21 @@ export default function InventoriesPageClient({
     router.push(`/inventories?${params.toString()}`);
   }, [router, searchParams]);
 
-  // Modal state
+  const handleViewChange = useCallback((_: unknown, newView: string | null) => {
+    if (!newView) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", newView);
+    router.push(`/inventories?${params.toString()}`);
+  }, [router, searchParams]);
+
+  const resetFilters = useCallback(() => {
+    setLocalQ("");
+    const params = new URLSearchParams();
+    params.set("panel", "open");
+    params.set("view", "items");
+    router.push(`/inventories?${params.toString()}`);
+  }, [router]);
+
   const [modalPlayer, setModalPlayer] = useState<string | null>(null);
 
   return (
@@ -250,6 +306,19 @@ export default function InventoriesPageClient({
       <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2, alignItems: "center" }}>
         <InventorySearch q={localQ} onChange={handleSearchChange} />
         <InventoryFilter items={filteredItems} gameItemMap={gameItemMap} />
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={handleViewChange}
+          size="small"
+          sx={{ "& .MuiToggleButton-root": { fontSize: "0.85rem", px: 1.5 } }}
+        >
+          <ToggleButton value="items">По игрокам</ToggleButton>
+          <ToggleButton value="summed">Сумма</ToggleButton>
+        </ToggleButtonGroup>
+        <IconButton size="small" onClick={resetFilters} title="Сбросить фильтры" sx={{ color: "text.secondary" }}>
+          <RestartAltIcon />
+        </IconButton>
       </Box>
 
       <Box sx={{ display: "flex", position: "relative", minHeight: 400 }}>
@@ -257,11 +326,12 @@ export default function InventoriesPageClient({
           <IconButton
             onClick={() => togglePanel(true)}
             sx={{
-              position: "absolute",
-              right: 0,
-              top: 0,
+              position: "sticky",
+              top: 8,
               zIndex: 10,
               color: "text.secondary",
+              flexShrink: 0,
+              alignSelf: "flex-start",
             }}
           >
             <ArrowBackIosNewIcon />
@@ -282,14 +352,14 @@ export default function InventoriesPageClient({
                 </Box>
                 {itemInfo && (
                   <Box sx={{ maxWidth: 600, mb: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "pre-line", fontSize: "0.8rem" }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "pre-line", fontSize: "0.9rem" }}>
                       {itemInfo}
                     </Typography>
                   </Box>
                 )}
                 {players.length > 0 ? (
                   <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600 }}>
-                    <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "0.8rem" } }}>
+                    <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "0.9rem" } }}>
                       <TableHead>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
@@ -306,7 +376,7 @@ export default function InventoriesPageClient({
                                 label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
                                 size="small"
                                 color={p.item_type === "effect" ? "warning" : p.item_type === "item" ? "primary" : "secondary"}
-                                sx={{ height: 20, fontSize: "0.7rem" }}
+                                sx={{ height: 22, fontSize: "0.8rem" }}
                               />
                             </TableCell>
                             <TableCell align="right">{p.total_quantity}</TableCell>
@@ -329,20 +399,49 @@ export default function InventoriesPageClient({
           ) : (
             <Box>
               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                Все предметы ({sortedInventoryItems.length})
+                Все предметы ({viewMode === "summed" ? summedItems.length : sortedInventoryItems.length})
               </Typography>
               <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "fit-content" }}>
-                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "0.9rem", whiteSpace: "nowrap" } }}>
+                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "1rem", whiteSpace: "nowrap" } }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, width: 100 }}>Игрок</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                      {viewMode === "summed" ? (
+                        <>
+                          <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
+                          <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Игроки</TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell sx={{ fontWeight: 600, width: 100 }}>Игрок</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
+                          <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                        </>
+                      )}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {sortedInventoryItems.map((item, idx) => (
+                    {viewMode === "summed" ? summedItems.map((item, idx) => (
+                      <TableRow key={`${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
+                        <TableCell>
+                          <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
+                            <span>{item.itemName}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell sx={{ width: 70 }}>
+                          <Chip
+                            label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
+                            size="small"
+                            color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
+                            sx={{ height: 22, fontSize: "0.8rem" }}
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={{ width: 50 }}>{item.totalQuantity}</TableCell>
+                        <TableCell>{item.players.join(", ")}</TableCell>
+                      </TableRow>
+                    )) : sortedInventoryItems.map((item, idx) => (
                       <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
                         <TableCell sx={{ width: 100 }}>{item.playerName}</TableCell>
                         <TableCell>
@@ -355,7 +454,7 @@ export default function InventoriesPageClient({
                             label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
                             size="small"
                             color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
-                            sx={{ height: 20, fontSize: "0.75rem" }}
+                            sx={{ height: 22, fontSize: "0.8rem" }}
                           />
                         </TableCell>
                         <TableCell align="right" sx={{ width: 50 }}>{item.quantity}</TableCell>
@@ -370,11 +469,14 @@ export default function InventoriesPageClient({
 
         <Box
           sx={{
-            width: showOverview ? 480 : 0,
+            width: showOverview ? 480 : 40,
             overflow: showOverview ? "visible" : "hidden",
             transition: "width 0.3s ease",
             flexShrink: 0,
-            position: "relative",
+            position: "sticky",
+            top: 8,
+            alignSelf: "flex-start",
+            maxHeight: "calc(100vh - 16px)",
           }}
         >
           {showOverview && (
@@ -383,30 +485,27 @@ export default function InventoriesPageClient({
                 width: 480,
                 p: 1,
                 bgcolor: "background.paper",
-                position: "absolute",
-                right: 0,
-                top: 0,
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                 <IconButton size="small" onClick={() => togglePanel(false)}>
                   <ArrowForwardIosIcon fontSize="small" />
                 </IconButton>
-                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
                   Общая информация
                 </Typography>
                 <LiveTimestamp date={overviewLastUpdated ?? null} />
               </Box>
               <TableContainer sx={{ overflowX: "auto" }}>
-                <Table size="small" sx={{ "& td, & th": { whiteSpace: "nowrap", px: 0.5, py: 0.3, fontSize: "0.9rem" } }}>
+                <Table size="small" sx={{ "& td, & th": { whiteSpace: "nowrap", px: 0.5, py: 0.3, fontSize: "1rem" } }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, fontSize: "0.85rem" }}>Участник</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>Монеток</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>Слёз</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>Эффектов</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>Предметов</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>Спецроллов</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Участник</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Монеток</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Слёз</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Эффектов</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Предметов</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Спецроллов</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -416,16 +515,16 @@ export default function InventoriesPageClient({
                         sx={{ "&:last-of-type td": { border: 0 } }}
                       >
                         <TableCell
-                          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline", color: "primary.main" }, fontSize: "0.9rem", py: 0.3 }}
+                          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline", color: "primary.main" }, fontSize: "1rem", py: 0.3 }}
                           onClick={() => setModalPlayer(p.player_name)}
                         >
                           {p.player_name}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontSize: "0.9rem", py: 0.3 }}>{p.coins}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "0.9rem", py: 0.3 }}>{p.tears}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "0.9rem", py: 0.3 }}>{p.effects}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "0.9rem", py: 0.3 }}>{p.items}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "0.9rem", py: 0.3 }}>{p.special_rolls}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.coins}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.tears}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.effects}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.items}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.special_rolls}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
