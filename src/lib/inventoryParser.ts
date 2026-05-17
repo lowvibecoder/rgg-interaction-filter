@@ -24,7 +24,9 @@ export function parseInventoryPage(html: string, playerName: string): ParsedInve
       if (idx !== -1 && idx < sectionEnd) sectionEnd = idx;
     }
     const sectionHtml = html.substring(sectionIdx + section.heading.length, sectionEnd);
-    if (sectionHtml.includes("Пусто")) continue;
+    // Skip if no items found (check for MuiListItemText-root instead of "Пусто"
+    // which can appear in item names like "Пустой кубик")
+    if (!sectionHtml.includes("MuiListItemText-root")) continue;
 
     const sectionItems: { name: string; quantity: number }[] = [];
     let pos = 0;

@@ -143,7 +143,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
           </Typography>
         </Box>
       ))}
-      <Stack direction="row" spacing={1} sx={{ py: 2, justifyContent: "center", alignItems: "center" }}>
+      <Stack direction="row" spacing={0.5} sx={{ py: 1, justifyContent: "center", alignItems: "center" }}>
         <IconButton size="small" onClick={() => goToPage(1)} disabled={page <= 1}>
           <FirstPageIcon />
         </IconButton>
