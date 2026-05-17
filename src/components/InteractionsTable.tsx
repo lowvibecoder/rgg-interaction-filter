@@ -74,7 +74,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
       <Box
         sx={{
           display: "flex",
-          gap: 0.5,
+          gap: 0.25,
           px: 2,
           py: 1,
           borderBottom: 2,
@@ -88,17 +88,17 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
         }}
       >
         <Box sx={{ width: 70, flexShrink: 0 }}>Дата</Box>
-        <Box sx={{ width: 120, flexShrink: 0 }}>От кого</Box>
-        <Box sx={{ width: 100, flexShrink: 0 }}>Кому</Box>
-        <Box sx={{ width: 150, flexShrink: 0 }}>Действие</Box>
-        <Box sx={{ minWidth: 200 }}>Примечание</Box>
+        <Box sx={{ width: 140, flexShrink: 0 }}>От кого</Box>
+        <Box sx={{ width: 140, flexShrink: 0 }}>Кому</Box>
+        <Box sx={{ width: 130, flexShrink: 0 }}>Действие</Box>
+        <Box sx={{ flex: 1, minWidth: 150, maxWidth: 400 }}>Примечание</Box>
       </Box>
       {rows.map((row) => (
         <Box
           key={row.id}
           sx={{
             display: "flex",
-            gap: 0.5,
+            gap: 0.25,
             px: 2,
             py: 1.5,
             borderBottom: "1px solid",
@@ -114,13 +114,13 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
             <br />
             {dayjs(Number(row.date_added)).format("HH:mm")}
           </Typography>
-          <Typography variant="body2" sx={{ width: 120, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", fontSize: "1rem" }}>
+          <Typography variant="body2" sx={{ width: 140, flexShrink: 0, fontSize: "1rem" }}>
             {row.sender_name}
           </Typography>
           <Stack
             direction="row"
             spacing={0.5}
-            sx={{ flexWrap: "wrap", gap: 0.5, width: 100, flexShrink: 0 }}
+            sx={{ flexWrap: "wrap", gap: 0.5, width: 140, flexShrink: 0 }}
           >
             {row.recipients.map((r, idx) => (
               <Chip
@@ -132,13 +132,13 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
               />
             ))}
           </Stack>
-          <Box sx={{ width: 150, flexShrink: 0 }}>
+          <Box sx={{ width: 130, flexShrink: 0 }}>
             <GameActionChip actionType={row.action_type} gameItemMap={gameItemMap} />
           </Box>
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ whiteSpace: "pre-line", minWidth: 200, fontSize: "1rem" }}
+            sx={{ whiteSpace: "pre-line", flex: 1, minWidth: 150, maxWidth: 400, fontSize: "1rem" }}
           >
             {row.note || ""}
           </Typography>
