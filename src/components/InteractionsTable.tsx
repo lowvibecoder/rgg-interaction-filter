@@ -89,7 +89,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
       >
         <Box sx={{ width: 70, flexShrink: 0 }}>Дата</Box>
         <Box sx={{ width: 120, flexShrink: 0 }}>От кого</Box>
-        <Box sx={{ width: 200, flexShrink: 0 }}>Кому</Box>
+        <Box sx={{ width: 100, flexShrink: 0 }}>Кому</Box>
         <Box sx={{ width: 150, flexShrink: 0 }}>Действие</Box>
         <Box sx={{ minWidth: 200 }}>Примечание</Box>
       </Box>
@@ -120,7 +120,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
           <Stack
             direction="row"
             spacing={0.5}
-            sx={{ flexWrap: "wrap", gap: 0.5, width: 200, flexShrink: 0 }}
+            sx={{ flexWrap: "wrap", gap: 0.5, width: 100, flexShrink: 0 }}
           >
             {row.recipients.map((r, idx) => (
               <Chip
@@ -128,7 +128,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
                 label={r.recipient_name}
                 size="small"
                 variant="outlined"
-                sx={{ fontSize: "0.9rem" }}
+                sx={{ fontSize: "1rem" }}
               />
             ))}
           </Stack>
@@ -195,7 +195,7 @@ function GameActionChip({
         whiteSpace: "normal",
         cursor: "pointer",
         userSelect: "none",
-        fontSize: "1rem",
+        fontSize: "0.9rem",
       }}
     >
       {actionType}

@@ -406,63 +406,55 @@ export default function InventoriesPageClient({
 
       <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {showSearchArea ? (
-            selectedItem ? (
-              <Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                  <Typography variant="subtitle1">
-                    Предмет: <strong>{selectedItem}{selectedItemTimer !== null ? ` (${selectedItemTimer})` : ""}</strong>
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    — найдено у {players.length} игроков
+          {selectedItem ? (
+            <Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                <Typography variant="subtitle1">
+                  Предмет: <strong>{selectedItem}{selectedItemTimer !== null ? ` (${selectedItemTimer})` : ""}</strong>
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  — найдено у {players.length} игроков
+                </Typography>
+              </Box>
+              {itemInfo && (
+                <Box sx={{ maxWidth: 600, mb: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "pre-line", fontSize: "1rem" }}>
+                    {itemInfo}
                   </Typography>
                 </Box>
-                {itemInfo && (
-                  <Box sx={{ maxWidth: 600, mb: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "pre-line", fontSize: "1rem" }}>
-                      {itemInfo}
-                    </Typography>
-                  </Box>
-                )}
-                {players.length > 0 ? (
-                  <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600 }}>
-                    <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "1rem" } }}>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+              )}
+              {players.length > 0 ? (
+                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600 }}>
+                  <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "1rem" } }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {players.map((p) => (
+                        <TableRow key={p.player_name + p.item_type} sx={{ "&:last-of-type td": { border: 0 } }}>
+                          <TableCell>{p.player_name}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
+                              size="small"
+                              color={p.item_type === "effect" ? "warning" : p.item_type === "item" ? "primary" : "secondary"}
+                              sx={{ height: 24, fontSize: "0.85rem" }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {players.map((p) => (
-                          <TableRow key={p.player_name + p.item_type} sx={{ "&:last-of-type td": { border: 0 } }}>
-                            <TableCell>{p.player_name}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
-                                size="small"
-                                color={p.item_type === "effect" ? "warning" : p.item_type === "item" ? "primary" : "secondary"}
-                                sx={{ height: 24, fontSize: "0.85rem" }}
-                              />
-                            </TableCell>
-                            <TableCell align="right">{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Typography color="text.secondary">Ничего не найдено</Typography>
-                )}
-              </Box>
-            ) : (
-              <Typography color="text.secondary">
-                {filteredItems.length > 0
-                  ? "Выберите содержимое инвентаря из списка"
-                  : "Ничего не найдено по вашему запросу"}
-              </Typography>
-            )
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Typography color="text.secondary">Ничего не найдено</Typography>
+              )}
+            </Box>
           ) : (
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
@@ -487,79 +479,85 @@ export default function InventoriesPageClient({
                   />
                 </FormGroup>
               </Box>
-              <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "100%" }}>
-                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "1rem", whiteSpace: "nowrap" } }}>
-                  <TableHead>
-                    <TableRow>
-                      {viewMode === "summed" ? (
-                        <>
-                          <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                          <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
-                          <TableCell sx={{ fontWeight: 600, maxWidth: 200 }}>Игроки</TableCell>
-                        </>
-                      ) : (
-                        <>
-                          <TableCell sx={{ fontWeight: 600, width: 100 }}>Игрок</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                          <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
-                        </>
-                      )}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {viewMode === "summed" ? summedItems.map((item, idx) => (
-                      <TableRow key={`${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
-                        <TableCell>
-                          <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
-                            <span>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell sx={{ width: 70 }}>
-                          <Chip
-                            label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
-                            size="small"
-                            color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
-                            sx={{ height: 24, fontSize: "0.85rem" }}
-                          />
-                        </TableCell>
-                        <TableCell align="right" sx={{ width: 50 }}>{item.totalQuantity}</TableCell>
-                        <TableCell sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                            {item.players.map((p) => (
-                              <Chip key={p} label={p} size="small" sx={{ height: 24, fontSize: "1rem" }} />
-                            ))}
-                          </Box>
-                        </TableCell>
+              {(viewMode === "summed" ? summedItems.length : filteredItemsWithTimers.length) === 0 ? (
+                <Typography color="text.secondary">
+                  {localQ ? "Ничего не найдено по вашему запросу" : "Введите поисковый запрос или откройте общую таблицу"}
+                </Typography>
+              ) : (
+                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "100%" }}>
+                  <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "1rem", whiteSpace: "nowrap" } }}>
+                    <TableHead>
+                      <TableRow>
+                        {viewMode === "summed" ? (
+                          <>
+                            <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
+                            <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                            <TableCell sx={{ fontWeight: 600, maxWidth: 200 }}>Игроки</TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell sx={{ fontWeight: 600, width: 100 }}>Игрок</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
+                            <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                          </>
+                        )}
                       </TableRow>
-                    )) : filteredItemsWithTimers.map((item, idx) => (
-                      <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
-                        <TableCell sx={{ width: 100 }}>{item.playerName}</TableCell>
-                        <TableCell>
-                          <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
-                            <span>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell sx={{ width: 70 }}>
-                          <Chip
-                            label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
-                            size="small"
-                            color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
-                            sx={{ height: 24, fontSize: "0.85rem" }}
-                          />
-                        </TableCell>
-                        <TableCell align="right" sx={{ width: 50 }}>{item.itemType === "effect" ? 1 : item.quantity}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {viewMode === "summed" ? summedItems.map((item, idx) => (
+                        <TableRow key={`${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
+                          <TableCell>
+                            <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
+                              <span>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ width: 70 }}>
+                            <Chip
+                              label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
+                              size="small"
+                              color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
+                              sx={{ height: 24, fontSize: "0.85rem" }}
+                            />
+                          </TableCell>
+                          <TableCell align="right" sx={{ width: 50 }}>{item.totalQuantity}</TableCell>
+                          <TableCell sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                              {item.players.map((p) => (
+                                <Chip key={p} label={p} size="small" sx={{ height: 24, fontSize: "1rem" }} />
+                              ))}
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      )) : filteredItemsWithTimers.map((item, idx) => (
+                        <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
+                          <TableCell sx={{ width: 100 }}>{item.playerName}</TableCell>
+                          <TableCell>
+                            <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
+                              <span>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={{ width: 70 }}>
+                            <Chip
+                              label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
+                              size="small"
+                              color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
+                              sx={{ height: 24, fontSize: "0.85rem" }}
+                            />
+                          </TableCell>
+                          <TableCell align="right" sx={{ width: 50 }}>{item.itemType === "effect" ? 1 : item.quantity}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </Box>
           )}
         </Box>
 
-        <Box sx={{ flexShrink: 0, position: "sticky", top: 8, alignSelf: "flex-start", maxHeight: "calc(100vh - 16px)", overflow: "auto" }}>
+        <Box sx={{ flexShrink: 0, alignSelf: "flex-start" }}>
           {showOverview ? (
             <Paper sx={{ width: 540, p: 1, bgcolor: "background.paper" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
