@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Autocomplete, TextField, Box, Typography } from "@mui/material";
+import { Autocomplete, TextField } from "@mui/material";
 
 export default function InventoryFilter({ items }: { items: string[] }) {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function InventoryFilter({ items }: { items: string[] }) {
       renderInput={(params) => (
         <TextField {...params} label="Выберите предмет или спецролл" variant="outlined" size="small" />
       )}
-      sx={{ maxWidth: 400 }}
+      sx={{ minWidth: 350, maxWidth: 600 }}
     />
   );
 }

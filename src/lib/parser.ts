@@ -11,7 +11,7 @@ function extractActionType(text: string): { actionType: string; note: string } {
 }
 
 function cleanRscJson(raw: string): string {
-  let s = raw
+  const s = raw
     .replace(/\\\\/g, "\x00")
     .replace(/\\"/g, '"')
     .replace(/\x00/g, "\\")
@@ -89,7 +89,7 @@ export function parseRscPayload(html: string): RggInteraction[] {
   }
 
   // Fallback: try __next_f.push pattern
-  const pushPattern = /self\.__next_f\.push\(\[1,\s*"([^"]+)"\]/;
+  const pushPattern = /self\.__next_f\.push\(\[1,\s*"((?:[^"\\]|\\.)*)"\]/;
   const match = html.match(pushPattern);
   if (!match) return [];
 

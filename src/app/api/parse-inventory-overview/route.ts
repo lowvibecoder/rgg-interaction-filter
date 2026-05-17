@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseInventoryOverview } from "@/lib/inventoryOverviewParser";
-import { upsertPlayerOverview } from "@/lib/db";
+import { fetchAndUpsertOverview, ensureTables } from "@/lib/services";
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -9,17 +8,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res = await fetch("https://rgg.land/inventories");
-    const html = await res.text();
-    const players = parseInventoryOverview(html);
+    await ensureTables();
+    const result = await fetchAndUpsertOverview();
 
-    let inserted = 0;
-    for (const p of players) {
-      await upsertPlayerOverview(p.playerName, p.coins, p.tears, p.effects, p.items, p.specialRolls);
-      inserted++;
-    }
-
-    return NextResponse.json({ success: true, count: inserted });
+    return NextResponse.json({ ...result, timestamp: new Date().toISOString() });
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

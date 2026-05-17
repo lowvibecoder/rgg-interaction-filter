@@ -7,6 +7,7 @@ import Box from "@mui/material/Box";
 import theme from "./theme";
 import Sidebar from "@/components/Sidebar";
 import AutoRefresh from "@/components/AutoRefresh";
+import ScrollToTop from "@/components/ScrollToTop";
 import "./globals.css";
 
 const rubik = Rubik({
@@ -33,9 +34,10 @@ export default function RootLayout({
             <AutoRefresh />
             <Box sx={{ display: "flex", minHeight: "100vh" }}>
               <Sidebar />
-              <Box sx={{ flex: 1, overflow: "auto", p: 0, minHeight: "100vh" }}>
+              <Box id="scroll-container" sx={{ flex: 1, overflow: "auto", p: 0, minHeight: "100vh" }}>
                 {children}
               </Box>
+              <ScrollToTop />
             </Box>
           </ThemeProvider>
         </AppRouterCacheProvider>

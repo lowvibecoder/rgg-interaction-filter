@@ -1,6 +1,7 @@
 {
   "name": "rgg-interactions",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -17,6 +18,7 @@
     "@mui/material-nextjs": "^9.0.1",
     "@mui/x-date-pickers": "^9.2.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@upstash/redis": "^1.38.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.20",
     "next": "16.2.6",

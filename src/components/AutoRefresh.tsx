@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-export default function AutoRefresh({ intervalMs = 120000 }: { intervalMs?: number }) {
+export default function AutoRefresh() {
   const router = useRouter();
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    const id = setInterval(async () => {
-      try {
-        await fetch("/api/touch-all");
-      } catch {}
-      router.refresh();
-    }, intervalMs);
-    return () => clearInterval(id);
-  }, [router, intervalMs]);
+    if (hasRun.current) return;
+    hasRun.current = true;
+
+    fetch("/api/touch-all")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.touched && data.touched.length > 0) {
+          router.refresh();
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   return null;
 }

@@ -1,138 +1,60 @@
 import { NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
-import { ACTIVE_PLAYERS } from "@/lib/players";
-import { parseInventoryPage } from "@/lib/inventoryParser";
-import { parseInteractions } from "@/lib/parser";
-import { upsertInteraction, upsertRecipients, upsertPlayerOverview } from "@/lib/db";
-import { parseInventoryOverview } from "@/lib/inventoryOverviewParser";
+import {
+  fetchAndUpsertInteractions,
+  fetchAndUpsertInventories,
+  fetchAndUpsertOverview,
+  fetchAndUpsertGameData,
+  ensureTables,
+} from "@/lib/services";
+import { getSql } from "@/lib/db";
 
 export async function GET() {
   try {
-    const sql = neon(process.env.POSTGRES_URL!);
+    await ensureTables();
 
-    // Ensure all tables exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS player_items (
-        player_name TEXT NOT NULL,
-        item_name TEXT NOT NULL,
-        item_type TEXT NOT NULL,
-        quantity INTEGER DEFAULT 1,
-        updated_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (player_name, item_name, item_type)
-      )
-    `;
-    await sql`
-      CREATE TABLE IF NOT EXISTS player_overview (
-        player_name TEXT PRIMARY KEY,
-        coins INTEGER NOT NULL DEFAULT 0,
-        tears INTEGER NOT NULL DEFAULT 0,
-        effects INTEGER NOT NULL DEFAULT 0,
-        items INTEGER NOT NULL DEFAULT 0,
-        special_rolls INTEGER NOT NULL DEFAULT 0,
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `;
-
+    const sql = getSql();
     const now = Date.now();
     const tasks: string[] = [];
 
-    // Check interactions staleness
     try {
-      const intRows = await sql`SELECT MAX(fetched_at) as last_update FROM interactions`;
-      const intLast = intRows[0]?.last_update as Date | null;
-      if (!intLast || now - new Date(intLast).getTime() > 120000) {
-        tasks.push("interactions");
-      }
-    } catch { tasks.push("interactions"); }
+      const rows = await sql`
+        SELECT
+          (SELECT MAX(fetched_at) FROM interactions) as interactions_last,
+          (SELECT MAX(updated_at) FROM player_items) as inventories_last,
+          (SELECT MAX(updated_at) FROM player_overview) as overview_last,
+          (SELECT MAX(updated_at) FROM game_items) as game_data_last
+      ` as { interactions_last: Date | null; inventories_last: Date | null; overview_last: Date | null; game_data_last: Date | null }[];
+      const r = rows[0];
+      const threshold = 300000;
+      if (!r.interactions_last || now - new Date(r.interactions_last).getTime() > threshold) tasks.push("interactions");
+      if (!r.inventories_last || now - new Date(r.inventories_last).getTime() > threshold) tasks.push("inventories");
+      if (!r.overview_last || now - new Date(r.overview_last).getTime() > threshold) tasks.push("overview");
+      if (!r.game_data_last || now - new Date(r.game_data_last).getTime() > threshold) tasks.push("game-data");
+    } catch {
+      tasks.push("interactions", "inventories", "overview", "game-data");
+    }
 
-    // Check inventories staleness
-    try {
-      const invRows = await sql`SELECT MAX(updated_at) as last_update FROM player_items`;
-      const invLast = invRows[0]?.last_update as Date | null;
-      if (!invLast || now - new Date(invLast).getTime() > 120000) {
-        tasks.push("inventories");
-      }
-    } catch { tasks.push("inventories"); }
+    const results: Record<string, unknown> = {};
 
-    // Check player overview staleness
-    try {
-      const ovRows = await sql`SELECT MAX(updated_at) as last_update FROM player_overview`;
-      const ovLast = ovRows[0]?.last_update as Date | null;
-      if (!ovLast || now - new Date(ovLast).getTime() > 120000) {
-        tasks.push("overview");
-      }
-    } catch { tasks.push("overview"); }
-
-  const results: Record<string, unknown> = {};
-
-  await Promise.all(
-    tasks.map(async (task) => {
-      try {
-        if (task === "interactions") {
-          // Direct call to parse logic
-          const res = await fetch("https://rgg.land/interactions");
-          const html = await res.text();
-          const parsed = parseInteractions(html);
-          let inserted = 0;
-          for (const interaction of parsed) {
-            await upsertInteraction(
-              interaction.id, interaction.dateAdded, interaction.senderName,
-              interaction.senderLogin, interaction.actionType, interaction.note, interaction.rawText
-            );
-            await upsertRecipients(interaction.id, interaction.recipients);
-            inserted++;
+    await Promise.all(
+      tasks.map(async (task) => {
+        try {
+          if (task === "interactions") {
+            results.interactions = await fetchAndUpsertInteractions();
+          } else if (task === "inventories") {
+            results.inventories = await fetchAndUpsertInventories();
+          } else if (task === "overview") {
+            results.overview = await fetchAndUpsertOverview();
+          } else if (task === "game-data") {
+            results["game-data"] = await fetchAndUpsertGameData();
           }
-          results.interactions = { success: true, count: inserted, parsed: parsed.length };
-        } else if (task === "inventories") {
-          const allItems: { playerName: string; itemName: string; itemType: string; quantity: number }[] = [];
-          const batchResults = await Promise.allSettled(
-            ACTIVE_PLAYERS.map(async (player) => {
-              const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
-                signal: AbortSignal.timeout(5000),
-              });
-              return parseInventoryPage(await res.text(), player);
-            })
-          );
-          for (const r of batchResults) {
-            if (r.status === "fulfilled") allItems.push(...r.value);
-          }
-          await sql`DELETE FROM player_items`;
-          let inserted = 0;
-          for (let i = 0; i < allItems.length; i += 50) {
-            const chunk = allItems.slice(i, i + 50);
-            const values = chunk.map((_, j) => {
-              const base = j * 4;
-              return `($${base + 1},$${base + 2},$${base + 3},$${base + 4})`;
-            }).join(",");
-            const params = chunk.flatMap((item) => [item.playerName, item.itemName, item.itemType, item.quantity]);
-            await sql.query(
-              `INSERT INTO player_items (player_name, item_name, item_type, quantity)
-               VALUES ${values}
-               ON CONFLICT (player_name, item_name, item_type)
-               DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()`,
-              params
-            );
-            inserted += chunk.length;
-          }
-          results.inventories = { success: true, total: inserted, players: ACTIVE_PLAYERS.length };
-        } else if (task === "overview") {
-          const res = await fetch("https://rgg.land/inventories");
-          const html = await res.text();
-          const players = parseInventoryOverview(html);
-          let inserted = 0;
-          for (const p of players) {
-            await upsertPlayerOverview(p.playerName, p.coins, p.tears, p.effects, p.items, p.specialRolls);
-            inserted++;
-          }
-          results.overview = { success: true, count: inserted };
+        } catch (e: unknown) {
+          results[task] = { error: String(e) };
         }
-      } catch (e: unknown) {
-        results[task] = { error: String(e) };
-      }
-    })
-  );
+      })
+    );
 
-  return NextResponse.json({ touched: tasks, results, timestamp: new Date().toISOString() });
+    return NextResponse.json({ touched: tasks, results, timestamp: new Date().toISOString() });
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

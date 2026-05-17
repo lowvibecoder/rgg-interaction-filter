@@ -1,6 +1,6 @@
 "use client";
 
-import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box } from "@mui/material";
+import { Drawer, List, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
 import { usePathname, useRouter } from "next/navigation";
 
 const navItems = [

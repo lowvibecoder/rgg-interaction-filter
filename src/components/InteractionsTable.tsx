@@ -6,7 +6,14 @@ import {
   Typography,
   Box,
   Tooltip,
+  IconButton,
 } from "@mui/material";
+import FirstPageIcon from "@mui/icons-material/FirstPage";
+import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
+import LastPageIcon from "@mui/icons-material/LastPage";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
 import updateLocale from "dayjs/plugin/updateLocale";
@@ -28,7 +35,9 @@ dayjs.updateLocale("ru", {
 interface TableProps {
   rows: ParsedInteractionWithRecipients[];
   total: number;
-  gameItemMap: Record<string, { description: string; source: string }>;
+  page: number;
+  totalPages: number;
+  gameItemMap: Record<string, string>;
 }
 
 const actionColors: Record<string, string> = {
@@ -49,9 +58,17 @@ function getActionColor(action: string): string {
   return "#1e1e1e";
 }
 
-type GameItemInfo = { description: string; source: string };
+export default function InteractionsTable({ rows, total, page, totalPages, gameItemMap }: TableProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-export default function InteractionsTable({ rows, total, gameItemMap }: TableProps) {
+  const goToPage = useCallback((p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p <= 1) params.delete("page");
+    else params.set("page", String(p));
+    router.push(`?${params.toString()}`);
+  }, [router, searchParams]);
+
   return (
     <Box>
       <Box
@@ -105,9 +122,9 @@ export default function InteractionsTable({ rows, total, gameItemMap }: TablePro
             spacing={0.5}
             sx={{ flexWrap: "wrap", gap: 0.5, width: 200, flexShrink: 0 }}
           >
-            {row.recipients.map((r) => (
+            {row.recipients.map((r, idx) => (
               <Chip
-                key={r.recipient_name}
+                key={`${r.recipient_name}-${r.recipient_login}-${idx}`}
                 label={r.recipient_name}
                 size="small"
                 variant="outlined"
@@ -126,13 +143,23 @@ export default function InteractionsTable({ rows, total, gameItemMap }: TablePro
           </Typography>
         </Box>
       ))}
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ textAlign: "center", py: 2 }}
-      >
-        Всего: {total}
-      </Typography>
+      <Stack direction="row" spacing={1} sx={{ py: 2, justifyContent: "center", alignItems: "center" }}>
+        <IconButton size="small" onClick={() => goToPage(1)} disabled={page <= 1}>
+          <FirstPageIcon />
+        </IconButton>
+        <IconButton size="small" onClick={() => goToPage(page - 1)} disabled={page <= 1}>
+          <KeyboardArrowLeft />
+        </IconButton>
+        <Typography variant="body2" color="text.secondary" sx={{ mx: 1 }}>
+          {page} / {totalPages} (всего: {total})
+        </Typography>
+        <IconButton size="small" onClick={() => goToPage(page + 1)} disabled={page >= totalPages}>
+          <KeyboardArrowRight />
+        </IconButton>
+        <IconButton size="small" onClick={() => goToPage(totalPages)} disabled={page >= totalPages}>
+          <LastPageIcon />
+        </IconButton>
+      </Stack>
     </Box>
   );
 }
@@ -142,12 +169,18 @@ function GameActionChip({
   gameItemMap,
 }: {
   actionType: string;
-  gameItemMap: Record<string, { description: string; source: string }>;
+  gameItemMap: Record<string, string>;
 }) {
-  const info = gameItemMap[actionType];
+  const description = gameItemMap[actionType];
+
+  const copyAction = () => {
+    navigator.clipboard.writeText(actionType).catch(() => {});
+  };
+
   const chip = (
     <Typography
       variant="caption"
+      onClick={copyAction}
       sx={{
         display: "inline-block",
         px: 1,
@@ -160,13 +193,15 @@ function GameActionChip({
         wordBreak: "break-word",
         overflowWrap: "break-word",
         whiteSpace: "normal",
+        cursor: "pointer",
+        userSelect: "none",
       }}
     >
       {actionType}
     </Typography>
   );
 
-  if (info?.description) {
+  if (description) {
     return (
       <Tooltip
         title={
@@ -175,7 +210,7 @@ function GameActionChip({
               {actionType}
             </Typography>
             <Typography variant="caption" sx={{ whiteSpace: "pre-line", fontSize: "0.75rem" }}>
-              {info.description}
+              {description}
             </Typography>
           </Box>
         }

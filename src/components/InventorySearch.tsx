@@ -1,27 +1,15 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { TextField } from "@mui/material";
 
-export default function InventorySearch() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentQ = searchParams.get("q") || "";
-
+export default function InventorySearch({ q, onChange }: { q: string; onChange: (v: string) => void }) {
   return (
     <TextField
       size="small"
       placeholder="Поиск по названию или описанию"
-      defaultValue={currentQ}
-      onChange={(e) => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (e.target.value) params.set("q", e.target.value);
-        else params.delete("q");
-        params.delete("item");
-        params.delete("panel");
-        router.push(`/inventories?${params.toString()}`);
-      }}
-      sx={{ minWidth: 300 }}
+      value={q}
+      onChange={(e) => onChange(e.target.value)}
+      sx={{ minWidth: 200, flexGrow: 1, maxWidth: 300 }}
     />
   );
 }

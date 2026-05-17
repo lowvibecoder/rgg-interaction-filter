@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import {
-  getInventoryItems, getPlayersByInventoryItem, getGameItems,
-  getInventoryLastUpdated, getPlayerOverviews, getPlayerOverviewLastUpdated,
+  getPlayersByInventoryItem,
+  getInventoryLastUpdated, getPlayerOverviewLastUpdated,
+  getCachedInventoryItems, getCachedGameItems, getCachedPlayerOverviews,
 } from "@/lib/db";
 import InventoriesPageClient from "@/components/InventoriesPageClient";
 
@@ -13,23 +14,26 @@ interface PageProps {
   searchParams: Promise<{ item?: string; q?: string; panel?: string }>;
 }
 
+export const revalidate = 300;
+
 export default async function InventoriesPage({ searchParams }: PageProps) {
   const { item, q, panel } = await searchParams;
+  // Always get ALL items (no server-side filtering — client handles it)
   const [allItems, gameItems, lastUpdated, overview, overviewLastUpdated] = await Promise.all([
-    getInventoryItems(q || undefined),
-    getGameItems(),
+    getCachedInventoryItems(),
+    getCachedGameItems(),
     getInventoryLastUpdated(),
-    getPlayerOverviews(),
+    getCachedPlayerOverviews(),
     getPlayerOverviewLastUpdated(),
   ]);
 
-  const gameItemMap = new Map<string, { description: string; source: string }>();
+  const gameItemMap: Record<string, string> = {};
   for (const gi of gameItems) {
-    gameItemMap.set(gi.name, { description: gi.description, source: gi.source });
+    gameItemMap[gi.name] = gi.description;
   }
 
   const players = item ? await getPlayersByInventoryItem(item) : [];
-  const itemInfo = item ? (gameItemMap.get(item) ?? null) : null;
+  const itemInfo = item ? (gameItemMap[item] ?? null) : null;
 
   return (
     <InventoriesPageClient
@@ -42,6 +46,7 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
       overviewLastUpdated={overviewLastUpdated?.toISOString() ?? null}
       q={q || ""}
       panel={panel || ""}
+      gameItemMap={gameItemMap}
     />
   );
 }

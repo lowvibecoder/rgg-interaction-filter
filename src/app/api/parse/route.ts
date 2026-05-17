@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseInteractions } from "@/lib/parser";
-import { upsertInteraction, upsertRecipients } from "@/lib/db";
+import { fetchAndUpsertInteractions } from "@/lib/services";
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -11,38 +10,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const res = await fetch("https://rgg.land/interactions");
-    const html = await res.text();
-
-    const parsed = parseInteractions(html);
-
-    let inserted = 0;
-    let errors = 0;
-    for (const interaction of parsed) {
-      try {
-        await upsertInteraction(
-          interaction.id,
-          interaction.dateAdded,
-          interaction.senderName,
-          interaction.senderLogin,
-          interaction.actionType,
-          interaction.note,
-          interaction.rawText
-        );
-        await upsertRecipients(interaction.id, interaction.recipients);
-        inserted++;
-      } catch (e) {
-        errors++;
-        console.error("Insert error:", e, interaction.id);
-      }
-    }
+    const result = await fetchAndUpsertInteractions();
 
     return NextResponse.json({
-      success: true,
-      count: inserted,
-      errors,
-      parsed: parsed.length,
-      htmlSize: html.length,
+      ...result,
+      errors: 0,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

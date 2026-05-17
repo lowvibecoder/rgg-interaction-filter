@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { getSql } from "@/lib/db";
+import { invalidateInteractionCache } from "@/lib/interactionCache";
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -9,15 +12,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { neon } = await import("@neondatabase/serverless");
-    const sql = neon(process.env.POSTGRES_URL!);
+    const sql = getSql();
 
-    const delRecipients = await sql`DELETE FROM interaction_recipients`;
-    const delInteractions = await sql`DELETE FROM interactions`;
+    const [{ count: recipientCount }] = await sql`SELECT COUNT(*) as count FROM interaction_recipients` as { count: string }[];
+    const [{ count: interactionCount }] = await sql`SELECT COUNT(*) as count FROM interactions` as { count: string }[];
+
+    await sql`DELETE FROM interaction_recipients`;
+    await sql`DELETE FROM interactions`;
+
+    revalidateTag("interactions", "max");
+    await invalidateInteractionCache();
 
     return NextResponse.json({
       success: true,
-      deleted: { recipients: delRecipients.length, interactions: delInteractions.length },
+      deleted: { recipients: Number(recipientCount), interactions: Number(interactionCount) },
     });
   } catch (error) {
     console.error("Clear error:", error);

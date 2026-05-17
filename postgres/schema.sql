@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS interaction_recipients (
 CREATE INDEX IF NOT EXISTS idx_interactions_date_added ON interactions(date_added DESC);
 CREATE INDEX IF NOT EXISTS idx_interactions_sender ON interactions(sender_name);
 CREATE INDEX IF NOT EXISTS idx_interactions_action ON interactions(action_type);
+CREATE INDEX IF NOT EXISTS idx_interactions_date_sender_action ON interactions(date_added DESC, sender_name, action_type);
 CREATE INDEX IF NOT EXISTS idx_recipients_interaction ON interaction_recipients(interaction_id);
 CREATE INDEX IF NOT EXISTS idx_recipients_name ON interaction_recipients(recipient_name);
 

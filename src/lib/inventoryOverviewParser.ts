@@ -27,17 +27,18 @@ export function parseInventoryOverview(html: string): PlayerOverview[] {
   if (!payload) return [];
 
   const rows: PlayerOverview[] = [];
-  const rowRe = /\[\"\$","\$L58",null,\{"children":"([^"]+?)"\}\],\[\"\$","\$L58",null,\{"children":(\d+)\}\],\[\"\$","\$L58",null,\{"children":(\d+)\}\],\[\"\$","\$L58",null,\{"children":(\d+)\}\],\[\"\$","\$L58",null,\{"children":(\d+)\}\],\[\"\$","\$L58",null,\{"children":(\d+)\}/g;
+  // Dynamic chunk ID: match any $L\d+ pattern instead of hardcoded $L58
+  const rowRe = /\[\"\$","\$(L\d+)",null,\{"children":"([^"]+?)"\}\],\[\"\$","\$\1",null,\{"children":(\d+)\}\],\[\"\$","\$\1",null,\{"children":(\d+)\}\],\[\"\$","\$\1",null,\{"children":(\d+)\}\],\[\"\$","\$\1",null,\{"children":(\d+)\}\],\[\"\$","\$\1",null,\{"children":(\d+)\}/g;
 
   let m: RegExpExecArray | null;
   while ((m = rowRe.exec(payload)) !== null) {
     rows.push({
-      playerName: m[1],
-      coins: parseInt(m[2], 10),
-      tears: parseInt(m[3], 10),
-      effects: parseInt(m[4], 10),
-      items: parseInt(m[5], 10),
-      specialRolls: parseInt(m[6], 10),
+      playerName: m[2],
+      coins: parseInt(m[3], 10),
+      tears: parseInt(m[4], 10),
+      effects: parseInt(m[5], 10),
+      items: parseInt(m[6], 10),
+      specialRolls: parseInt(m[7], 10),
     });
   }
 
