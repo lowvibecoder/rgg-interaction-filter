@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getInventoryLastUpdated, getInteractionsLastUpdated } from "@/lib/db";
 import { fetchAndUpsertInventories, fetchAndUpsertInteractions, fetchAndUpsertOverview, ensureTables } from "@/lib/services";
-import { invalidateAllCache } from "@/lib/redisCache";
-import { invalidateInteractionCache } from "@/lib/interactionCache";
+import { invalidateAllCache, getCachedInventoryLastUpdated, getCachedInteractionsLastUpdated } from "@/lib/redisCache";
+import { invalidateInteractionCache, setInteractionHash } from "@/lib/interactionCache";
 import { getRedis } from "@/lib/redis";
 
 const INV_REFRESH_MS = 15 * 60 * 1000; // 15 minutes
@@ -37,13 +37,13 @@ async function getContentHash(key: string): Promise<string | null> {
 async function setContentHash(key: string, hash: string) {
   const r = getRedis();
   if (!r) return;
-  await r.set(key, hash, { ex: 86400 * 7 }); // keep for 7 days
+  await r.set(key, hash, { ex: 86400 * 7 });
 }
 
 export async function GET() {
   const [invLast, intLast] = await Promise.all([
-    getInventoryLastUpdated(),
-    getInteractionsLastUpdated(),
+    getCachedInventoryLastUpdated(),
+    getCachedInteractionsLastUpdated(),
   ]);
 
   const now = Date.now();
@@ -68,7 +68,6 @@ export async function GET() {
   try {
     await ensureTables();
 
-    // Inventories: only fetch if content changed (hash comparison)
     if (needInv) {
       const overviewResult = await fetchWithHash("https://rgg.land/inventories");
       if (overviewResult) {
@@ -80,7 +79,6 @@ export async function GET() {
         }
       }
 
-      // Fetch each player inventory and check hash
       const { ACTIVE_PLAYERS } = await import("@/lib/players");
       let anyInvChanged = false;
       await Promise.all(
@@ -103,7 +101,6 @@ export async function GET() {
       }
     }
 
-    // Interactions: fetch and compare hash
     if (needInt) {
       const intResult = await fetchWithHash("https://rgg.land/interactions");
       if (intResult) {
@@ -111,6 +108,7 @@ export async function GET() {
         if (prevHash !== intResult.hash) {
           await fetchAndUpsertInteractions();
           await setContentHash("hash:interactions", intResult.hash);
+          await setInteractionHash(intResult.hash);
           intUpdated = true;
         }
       }

@@ -2,7 +2,7 @@ import { getSql } from "./db";
 import { getRedis } from "./redis";
 
 const CACHE_KEY = "interactions:all";
-const LAST_SYNC_KEY = "interactions:lastSync";
+const HASH_KEY = "interactions:hash";
 
 interface CachedInteraction {
   id: string;
@@ -28,7 +28,6 @@ interface InteractionQuery {
   pageSize?: number;
 }
 
-// Convert YYYY-MM-DD to local midnight timestamp (matches db.ts logic)
 const TZ_HOURS = process.env.TZ_OFFSET ? Number(process.env.TZ_OFFSET) : -new Date().getTimezoneOffset() / 60;
 const OFFSET = TZ_HOURS * 60 * 60 * 1000;
 
@@ -41,7 +40,6 @@ function dateToEndTimestamp(s: string): number {
   return Date.UTC(y, m - 1, d + 1) + OFFSET - 1;
 }
 
-// Get all interactions from cache, pulling only new ones from DB
 export async function getCachedInteractionsDelta(query: InteractionQuery): Promise<{
   rows: CachedInteraction[];
   total: number;
@@ -53,12 +51,16 @@ export async function getCachedInteractionsDelta(query: InteractionQuery): Promi
   return applyFiltersAndPagination(all, query);
 }
 
-// Full cache invalidation (on parse/clear)
+export async function setInteractionHash(hash: string) {
+  const r = getRedis();
+  if (r) await r.set(HASH_KEY, hash, { ex: 86400 * 7 });
+}
+
 export async function invalidateInteractionCache() {
   const r = getRedis();
   if (r) {
     await r.del(CACHE_KEY);
-    await r.del(LAST_SYNC_KEY);
+    await r.del(HASH_KEY);
   }
 }
 
@@ -68,28 +70,34 @@ async function getAllInteractions(): Promise<CachedInteraction[]> {
 
   try {
     const cachedJson = await r.get<string>(CACHE_KEY);
-    const lastSync = await r.get<number>(LAST_SYNC_KEY) ?? 0;
-
-    // Check DB for new interactions since last sync
-    const sql = getSql();
-    const newRows = await sql.query(
-      `SELECT id, date_added, sender_name, sender_login, action_type, note, raw_text, fetched_at
-       FROM interactions WHERE date_added > $1::bigint ORDER BY date_added DESC`,
-      [String(lastSync)]
-    ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; raw_text: string; fetched_at: string }[];
-
-    if (newRows.length === 0 && cachedJson) {
+    if (cachedJson) {
       return JSON.parse(cachedJson);
     }
+  } catch { /* ignore */ }
 
-    // Fetch recipients for new interactions
-    const newIds = newRows.map((r) => r.id);
-    const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
-    if (newIds.length > 0) {
-      const placeholders = newIds.map((_, i) => `$${i + 1}`).join(",");
+  return fallbackFetch();
+}
+
+async function fallbackFetch(): Promise<CachedInteraction[]> {
+  const sql = getSql();
+  const rows = await sql.query(
+    `SELECT i.id, i.date_added, i.sender_name, i.sender_login,
+            i.action_type, i.note, i.raw_text, i.fetched_at
+     FROM interactions i
+     ORDER BY i.date_added DESC`
+  ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; raw_text: string; fetched_at: string }[];
+
+  const ids = rows.map((r) => r.id);
+  const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
+
+  if (ids.length > 0) {
+    const batchSize = 500;
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const chunk = ids.slice(i, i + batchSize);
+      const placeholders = chunk.map((_, j) => `$${j + 1}`).join(",");
       const recipientRows = await sql.query(
         `SELECT interaction_id, recipient_name, recipient_login FROM interaction_recipients WHERE interaction_id IN (${placeholders})`,
-        newIds
+        chunk
       ) as { interaction_id: string; recipient_name: string; recipient_login: string }[];
       for (const row of recipientRows) {
         if (!recipientsMap[row.interaction_id]) recipientsMap[row.interaction_id] = [];
@@ -99,43 +107,19 @@ async function getAllInteractions(): Promise<CachedInteraction[]> {
         });
       }
     }
-
-    // Merge new into cached
-    const cached: CachedInteraction[] = cachedJson ? JSON.parse(cachedJson) : [];
-    const existingIds = new Set(cached.map((c) => c.id));
-    const merged = [...cached];
-
-    for (const row of newRows) {
-      if (!existingIds.has(row.id)) {
-        merged.push({
-          ...row,
-          recipients: recipientsMap[row.id] || [],
-        });
-      }
-    }
-
-    // Sort by date descending
-    merged.sort((a, b) => b.date_added - a.date_added);
-
-    // Save to Redis
-    await r.set(CACHE_KEY, JSON.stringify(merged));
-    await r.set(LAST_SYNC_KEY, Date.now());
-
-    return merged;
-  } catch {
-    return fallbackFetch();
   }
-}
 
-async function fallbackFetch(): Promise<CachedInteraction[]> {
-  const { getInteractions } = await import("./db");
-  const result = await getInteractions({ page: 1, pageSize: 100000 });
+  const result: CachedInteraction[] = rows.map((r) => ({
+    ...r,
+    recipients: recipientsMap[r.id] || [],
+  }));
+
   const r = getRedis();
   if (r) {
-    await r.set(CACHE_KEY, JSON.stringify(result.rows));
-    await r.set(LAST_SYNC_KEY, Date.now());
+    await r.set(CACHE_KEY, JSON.stringify(result), { ex: 86400 });
   }
-  return result.rows as CachedInteraction[];
+
+  return result;
 }
 
 function applyFiltersAndPagination(

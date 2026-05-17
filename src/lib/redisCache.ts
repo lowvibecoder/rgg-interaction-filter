@@ -8,8 +8,9 @@ import {
 } from "./db";
 
 const TTL = 300; // 5 minutes
+const TTL_LONG = 86400; // 24 hours for rarely-changing data
 
-async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
+async function cached<T>(key: string, fn: () => Promise<T>, ttl = TTL): Promise<T> {
   const r = getRedis();
   if (!r) return fn();
   try {
@@ -18,13 +19,13 @@ async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
   } catch { /* ignore */ }
   const data = await fn();
   try {
-    await r.set(key, JSON.stringify(data), { ex: TTL });
+    await r.set(key, JSON.stringify(data), { ex: ttl });
   } catch { /* ignore */ }
   return data;
 }
 
 export function getCachedGameItems() {
-  return cached("cache:game-items", () => getGameItems());
+  return cached("cache:game-items", () => getGameItems(), TTL_LONG);
 }
 
 export function getCachedInventoryItems(searchTerm?: string) {
