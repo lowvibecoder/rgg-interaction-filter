@@ -91,7 +91,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
         <Box sx={{ width: 140, flexShrink: 0 }}>От кого</Box>
         <Box sx={{ width: 140, flexShrink: 0 }}>Кому</Box>
         <Box sx={{ width: 130, flexShrink: 0 }}>Действие</Box>
-        <Box sx={{ flex: 1, minWidth: 150, maxWidth: 400 }}>Примечание</Box>
+        <Box sx={{ flex: 1, minWidth: 150 }}>Примечание</Box>
       </Box>
       {rows.map((row) => (
         <Box
@@ -138,7 +138,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ whiteSpace: "pre-line", flex: 1, minWidth: 150, maxWidth: 400, fontSize: "1rem" }}
+            sx={{ whiteSpace: "pre-line", flex: 1, minWidth: 150, fontSize: "1rem" }}
           >
             {row.note || ""}
           </Typography>
