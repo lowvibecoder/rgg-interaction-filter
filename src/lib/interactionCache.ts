@@ -112,7 +112,9 @@ export async function refreshInteractionCache() {
 
   cached.sort((a, b) => b.date_added - a.date_added);
   await r.set(CACHE_KEY, JSON.stringify(cached), { ex: 86400 });
-  await r.set(LAST_SYNC_KEY, Date.now());
+  // Use max date_added from fetched rows, NOT wall clock time
+  const maxDateAdded = Math.max(...newRows.map((r) => r.date_added));
+  await r.set(LAST_SYNC_KEY, maxDateAdded);
 }
 
 export async function invalidateInteractionCache() {
@@ -179,7 +181,9 @@ async function fallbackFetch(): Promise<CachedInteraction[]> {
 
   if (r) {
     await r.set(CACHE_KEY, JSON.stringify(result), { ex: 86400 });
-    await r.set(LAST_SYNC_KEY, Date.now());
+    if (rows.length > 0) {
+      await r.set(LAST_SYNC_KEY, Math.max(...rows.map((r) => r.date_added)));
+    }
   }
 
   return result;
