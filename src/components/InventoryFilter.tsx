@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, TextField, Tooltip } from "@mui/material";
 
-export default function InventoryFilter({ items }: { items: string[] }) {
+export default function InventoryFilter({ items, gameItemMap }: { items: string[]; gameItemMap: Record<string, string> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedItem = searchParams.get("item") || "";
@@ -22,7 +22,12 @@ export default function InventoryFilter({ items }: { items: string[] }) {
         router.push(`/inventories?${params.toString()}`);
       }}
       renderInput={(params) => (
-        <TextField {...params} label="Выберите предмет или спецролл" variant="outlined" size="small" />
+        <TextField {...params} label="Выберите содержимое инвентаря" variant="outlined" size="small" />
+      )}
+      renderOption={(props, option) => (
+        <Tooltip title={gameItemMap[option] || ""} arrow placement="right">
+          <li {...props}>{option}</li>
+        </Tooltip>
       )}
       sx={{ minWidth: 350, maxWidth: 600 }}
     />

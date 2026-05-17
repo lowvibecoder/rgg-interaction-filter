@@ -240,7 +240,7 @@ export default function InventoriesPageClient({
 
       <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2, alignItems: "center" }}>
         <InventorySearch q={localQ} onChange={handleSearchChange} />
-        <InventoryFilter items={filteredItems} />
+        <InventoryFilter items={filteredItems} gameItemMap={gameItemMap} />
       </Box>
 
       <Box sx={{ display: "flex", position: "relative", minHeight: 400 }}>
@@ -263,7 +263,7 @@ export default function InventoriesPageClient({
           {showSearchArea ? (
             selectedItem ? (
               <Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                   <Typography variant="subtitle1">
                     Предмет: <strong>{selectedItem}</strong>
                   </Typography>
@@ -272,14 +272,12 @@ export default function InventoriesPageClient({
                   </Typography>
                 </Box>
                 {itemInfo && (
-                  <Paper sx={{ p: 1.5, mb: 2, bgcolor: "background.paper" }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "pre-line", fontSize: "0.75rem" }}>
-                      {itemInfo}
-                    </Typography>
-                  </Paper>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5, whiteSpace: "pre-line", fontSize: "0.8rem" }}>
+                    {itemInfo}
+                  </Typography>
                 )}
                 {players.length > 0 ? (
-                  <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 500 }}>
+                  <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600 }}>
                     <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "0.8rem" } }}>
                       <TableHead>
                         <TableRow>
@@ -313,7 +311,7 @@ export default function InventoriesPageClient({
             ) : (
               <Typography color="text.secondary">
                 {filteredItems.length > 0
-                  ? "Выберите предмет или спецролл из списка"
+                  ? "Выберите содержимое инвентаря из списка"
                   : "Ничего не найдено по вашему запросу"}
               </Typography>
             )
