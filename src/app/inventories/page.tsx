@@ -45,7 +45,7 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
       lastUpdated={lastUpdated?.toISOString() ?? null}
       overviewLastUpdated={overviewLastUpdated?.toISOString() ?? null}
       q={q || ""}
-      panel={panel || ""}
+      panel={panel || "open"}
       gameItemMap={gameItemMap}
     />
   );

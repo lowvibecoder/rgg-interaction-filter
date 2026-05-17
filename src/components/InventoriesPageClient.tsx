@@ -272,9 +272,11 @@ export default function InventoriesPageClient({
                   </Typography>
                 </Box>
                 {itemInfo && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5, whiteSpace: "pre-line", fontSize: "0.8rem" }}>
-                    {itemInfo}
-                  </Typography>
+                  <Box sx={{ maxWidth: 600, mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "pre-line", fontSize: "0.8rem" }}>
+                      {itemInfo}
+                    </Typography>
+                  </Box>
                 )}
                 {players.length > 0 ? (
                   <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600 }}>
