@@ -1,14 +1,15 @@
 import { getRedis } from "./redis";
 import {
-  getGameItems, getInventoryItems, getPlayerOverviews,
-  getInventoryLastUpdated, getPlayerOverviewLastUpdated,
-  getInteractionsLastUpdated, getDateRange,
+  getGameItems, getInteractionsLastUpdated, getDateRange,
   getSenders, getRecipients, getActionTypes,
-  getPlayersByInventoryItem,
 } from "./db";
+import {
+  getUniqueItemNames, getPlayersByItem, getPlayerOverviews,
+  getInventoryLastUpdated, getPlayerOverviewLastUpdated,
+} from "./inventoryCache";
 
-const TTL = 300; // 5 minutes
-const TTL_LONG = 86400; // 24 hours for rarely-changing data
+const TTL = 300;
+const TTL_LONG = 86400;
 
 async function cached<T>(key: string, fn: () => Promise<T>, ttl = TTL): Promise<T> {
   const r = getRedis();
@@ -30,7 +31,7 @@ export function getCachedGameItems() {
 
 export function getCachedInventoryItems(searchTerm?: string) {
   const key = searchTerm ? `cache:inventory-items:${searchTerm}` : "cache:inventory-items";
-  return cached(key, () => getInventoryItems(searchTerm));
+  return cached(key, () => getUniqueItemNames());
 }
 
 export function getCachedPlayerOverviews() {
@@ -38,11 +39,11 @@ export function getCachedPlayerOverviews() {
 }
 
 export function getCachedInventoryLastUpdated() {
-  return cached("cache:inventory-last-updated", () => getInventoryLastUpdated());
+  return getInventoryLastUpdated();
 }
 
 export function getCachedPlayerOverviewLastUpdated() {
-  return cached("cache:player-overview-last-updated", () => getPlayerOverviewLastUpdated());
+  return getPlayerOverviewLastUpdated();
 }
 
 export function getCachedInteractionsLastUpdated() {
@@ -75,7 +76,7 @@ export function getCachedActionTypes(filters?: {
 }
 
 export function getCachedPlayersByInventoryItem(itemName: string) {
-  return cached(`cache:players-by-item:${itemName}`, () => getPlayersByInventoryItem(itemName));
+  return cached(`cache:players-by-item:${itemName}`, () => getPlayersByItem(itemName));
 }
 
 export async function invalidateAllCache() {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import { getInventoryLastUpdated, getInteractionsLastUpdated } from "@/lib/db";
+import { getInteractionsLastUpdated } from "@/lib/db";
 import { fetchAndUpsertInventories, fetchAndUpsertInteractions, fetchAndUpsertOverview, ensureTables } from "@/lib/services";
 import { invalidateAllCache, getCachedInventoryLastUpdated, getCachedInteractionsLastUpdated } from "@/lib/redisCache";
 import { refreshInteractionCache, setInteractionHash } from "@/lib/interactionCache";

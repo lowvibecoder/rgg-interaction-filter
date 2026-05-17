@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import {
-  getPlayersByInventoryItem,
-} from "@/lib/db";
-import {
   getCachedInventoryItems, getCachedGameItems, getCachedPlayerOverviews,
   getCachedInventoryLastUpdated, getCachedPlayerOverviewLastUpdated,
+  getCachedPlayersByInventoryItem,
 } from "@/lib/redisCache";
 import InventoriesPageClient from "@/components/InventoriesPageClient";
 
@@ -34,7 +32,7 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
     gameItemMap[gi.name] = gi.description;
   }
 
-  const players = item ? await getPlayersByInventoryItem(item) : [];
+  const players = item ? await getCachedPlayersByInventoryItem(item) : [];
   const itemInfo = item ? (gameItemMap[item] ?? null) : null;
 
   return (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPlayerOverallInventory } from "@/lib/db";
+import { getPlayerInventory } from "@/lib/inventoryCache";
 import { ACTIVE_PLAYERS } from "@/lib/players";
+import { getCachedGameItems } from "@/lib/redisCache";
 
 export async function GET(
   _request: NextRequest,
@@ -14,13 +15,16 @@ export async function GET(
     return NextResponse.json({ error: "Player not found" }, { status: 404 });
   }
 
-  const items = await getPlayerOverallInventory(playerName);
+  const items = await getPlayerInventory(playerName);
+  const gameItems = await getCachedGameItems();
+  const itemMap = new Map<string, string>();
+  for (const gi of gameItems) itemMap.set(gi.name, gi.source);
 
   return NextResponse.json({
     player: playerName,
     items: items.map((item) => ({
       ...item,
-      quantity: Number(item.quantity),
+      source: itemMap.get(item.item_name) ?? null,
     })),
     activePlayers: ACTIVE_PLAYERS,
   }, {

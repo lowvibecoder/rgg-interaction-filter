@@ -7,10 +7,10 @@ import { parseGamePage } from "./gameDataParser";
 import {
   batchUpsertInteractions,
   batchUpsertAllRecipients,
-  batchUpsertPlayerOverviews,
   getSql,
 } from "./db";
-import { invalidateInteractionCache } from "./interactionCache";
+import { invalidateInteractionCache, refreshInteractionCache } from "./interactionCache";
+import { setAllInventoryItems, setPlayerOverviews } from "./inventoryCache";
 
 export async function ensureTables() {
   const sql = getSql();
@@ -95,9 +95,7 @@ export async function fetchAndUpsertInteractions() {
 }
 
 export async function fetchAndUpsertInventories() {
-  const sql = getSql();
   const allItems: { playerName: string; itemName: string; itemType: string; quantity: number }[] = [];
-  const fetchedPlayers = new Set<string>();
 
   const results = await Promise.allSettled(
     ACTIVE_PLAYERS.map(async (player) => {
@@ -112,36 +110,13 @@ export async function fetchAndUpsertInventories() {
   for (const result of results) {
     if (result.status === "fulfilled") {
       allItems.push(...result.value.items);
-      fetchedPlayers.add(result.value.player);
     }
   }
 
-  if (fetchedPlayers.size > 0) {
-    const ph = [...fetchedPlayers].map((_, i) => `$${i + 1}`).join(", ");
-    await sql.query(`DELETE FROM player_items WHERE player_name IN (${ph})`, [...fetchedPlayers]);
-  }
+  await setAllInventoryItems(allItems);
+  revalidateTag("inventory-items", "max");
 
-  let inserted = 0;
-  for (let i = 0; i < allItems.length; i += 50) {
-    const chunk = allItems.slice(i, i + 50);
-    const values = chunk.map((_, j) => {
-      const base = j * 4;
-      return `($${base + 1},$${base + 2},$${base + 3},$${base + 4})`;
-    }).join(",");
-    const params = chunk.flatMap((item) => [item.playerName, item.itemName, item.itemType, item.quantity]);
-    await sql.query(
-      `INSERT INTO player_items (player_name, item_name, item_type, quantity)
-       VALUES ${values}
-       ON CONFLICT (player_name, item_name, item_type)
-       DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()`,
-      params
-    );
-    inserted += chunk.length;
-  }
-
-  if (inserted > 0) revalidateTag("inventory-items", "max");
-
-  return { success: true, total: inserted, players: ACTIVE_PLAYERS.length };
+  return { success: true, total: allItems.length, players: ACTIVE_PLAYERS.length };
 }
 
 export async function fetchAndUpsertOverview() {
@@ -149,7 +124,14 @@ export async function fetchAndUpsertOverview() {
   const html = await res.text();
   const players = parseInventoryOverview(html);
 
-  await batchUpsertPlayerOverviews(players);
+  await setPlayerOverviews(players.map((p) => ({
+    player_name: p.playerName,
+    coins: p.coins,
+    tears: p.tears,
+    effects: p.effects,
+    items: p.items,
+    special_rolls: p.specialRolls,
+  })));
   revalidateTag("player-overviews", "max");
 
   return { success: true, count: players.length };
