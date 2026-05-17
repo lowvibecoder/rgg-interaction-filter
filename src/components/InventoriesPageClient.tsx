@@ -91,6 +91,9 @@ function extractTimer(description: string, itemName: string): number | null {
     new RegExp(`таймера\\s+${escaped}.*?(\\d+)\\s*сек`, "i"),
     new RegExp(`${escaped}.*?(\\d+)\\s*мин`, "i"),
     new RegExp(`таймера\\s+${escaped}.*?(\\d+)\\s*мин`, "i"),
+    new RegExp(`${escaped}\\s*\\((\\d+)\\)`, "i"),
+    new RegExp(`${escaped}\\s+(\\d+)`, "i"),
+    new RegExp(`${escaped}.*?(\\d+)\\s*ход`, "i"),
   ];
   for (const re of patterns) {
     const m = description.match(re);
@@ -102,7 +105,7 @@ function extractTimer(description: string, itemName: string): number | null {
 const ACTIVE_SET = new Set(ACTIVE_PLAYERS);
 
 function ItemLine({ item, description, onCopy }: { item: PlayerInventoryItem; description: string; onCopy: (text: string) => void }) {
-  const timer = item.item_type === "effect" ? extractTimer(description, item.item_name) : null;
+  const timer = extractTimer(description, item.item_name);
   const displayName = timer !== null ? `${item.item_name} (${timer})` : item.item_name;
   return (
     <Tooltip title={description || ""} arrow placement="right">
@@ -253,7 +256,7 @@ export default function InventoriesPageClient({
   const allItemsWithTimers: InventoryItemWithTimer[] = useMemo(() => {
     return allInventoryItems.map((item) => {
       const desc = gameItemMap[item.itemName] || "";
-      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
+      const timer = extractTimer(desc, item.itemName);
       return { ...item, timer };
     });
   }, [allInventoryItems, gameItemMap]);
@@ -283,7 +286,7 @@ export default function InventoriesPageClient({
     const map = new Map<string, { itemName: string; itemType: string; totalQuantity: number; players: string[]; timer: number | null }>();
     for (const item of allInventoryItems) {
       const desc = gameItemMap[item.itemName] || "";
-      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
+      const timer = extractTimer(desc, item.itemName);
       const key = `${item.itemName}||${item.itemType}`;
       const existing = map.get(key);
       if (existing) {
