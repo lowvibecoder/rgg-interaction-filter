@@ -331,7 +331,7 @@ export default function InventoriesPageClient({
               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                 Все предметы ({sortedInventoryItems.length})
               </Typography>
-              <TableContainer component={Paper} sx={{ bgcolor: "background.paper" }}>
+              <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "fit-content" }}>
                 <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "0.75rem", whiteSpace: "nowrap" } }}>
                   <TableHead>
                     <TableRow>
