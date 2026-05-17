@@ -80,8 +80,8 @@ export function getCachedPlayersByInventoryItem(itemName: string) {
   return cached(`cache:players-by-item:${itemName}`, () => getPlayersByItem(itemName));
 }
 
-export function getCachedAllInventoryItems() {
-  return cached("cache:all-inventory-items", () => getAllInventoryItems());
+export async function getCachedAllInventoryItems() {
+  return getAllInventoryItems();
 }
 
 export async function invalidateAllCache() {
