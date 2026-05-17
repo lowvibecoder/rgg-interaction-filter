@@ -50,8 +50,10 @@ export async function getAllInventoryItems(): Promise<InventoryItem[]> {
   const r = getRedis();
   if (!r) return [];
   try {
-    const raw = await r.get<string>(INV_ALL_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const raw = await r.get<InventoryItem[]>(INV_ALL_KEY);
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "string") return JSON.parse(raw);
+    return [];
   } catch {
     return [];
   }
@@ -108,8 +110,10 @@ export async function getPlayerOverviews(): Promise<PlayerOverview[]> {
   const r = getRedis();
   if (!r) return [];
   try {
-    const raw = await r.get<string>(INV_OVERVIEW_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const raw = await r.get<PlayerOverview[]>(INV_OVERVIEW_KEY);
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "string") return JSON.parse(raw);
+    return [];
   } catch {
     return [];
   }
@@ -119,10 +123,15 @@ export async function getInventoryLastUpdated(): Promise<Date | null> {
   const r = getRedis();
   if (!r) return null;
   try {
-    const raw = await r.get<string>(INV_META_KEY);
-    if (!raw) return null;
-    const meta: InventoryMeta = JSON.parse(raw);
-    return new Date(meta.updatedAt);
+    const raw = await r.get<InventoryMeta>(INV_META_KEY);
+    if (raw && typeof raw === "object" && "updatedAt" in raw) {
+      return new Date((raw as InventoryMeta).updatedAt);
+    }
+    if (typeof raw === "string") {
+      const meta: InventoryMeta = JSON.parse(raw);
+      return new Date(meta.updatedAt);
+    }
+    return null;
   } catch {
     return null;
   }
