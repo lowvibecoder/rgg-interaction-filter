@@ -527,7 +527,7 @@ export default function InventoriesPageClient({
                   {localQ ? "Ничего не найдено по вашему запросу" : "Введите поисковый запрос или откройте общую таблицу"}
                 </Typography>
               ) : (
-                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "100%" }}>
+                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600 }}>
                   <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "1rem", whiteSpace: "nowrap" } }}>
                     <TableHead>
                       <TableRow>
