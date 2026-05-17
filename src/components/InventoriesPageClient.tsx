@@ -406,8 +406,8 @@ export default function InventoriesPageClient({
 
       <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {selectedItem ? (
-            <Box>
+          {selectedItem && (
+            <Box sx={{ mb: 1.5 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                 <Typography variant="subtitle1">
                   Предмет: <strong>{selectedItem}{selectedItemTimer !== null ? ` (${selectedItemTimer})` : ""}</strong>
@@ -453,12 +453,12 @@ export default function InventoriesPageClient({
                 <Typography color="text.secondary">Ничего не найдено</Typography>
               )}
             </Box>
-          ) : (
-            <Box>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Все предметы ({viewMode === "summed" ? summedItems.length : filteredItemsWithTimers.length})
-                </Typography>
+          )}
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Все предметы ({viewMode === "summed" ? summedItems.length : filteredItemsWithTimers.length})
+              </Typography>
                 <FormGroup row sx={{ "& .MuiFormControlLabel-root": { mr: 1 } }}>
                   <FormControlLabel
                     control={<Checkbox size="small" checked={hideEffects} onChange={(e) => toggleFilter("hideEffects", e.target.checked)} />}
@@ -552,7 +552,6 @@ export default function InventoriesPageClient({
                 </TableContainer>
               )}
             </Box>
-          )}
         </Box>
 
         <Box sx={{ flexShrink: 0, alignSelf: "flex-start" }}>
