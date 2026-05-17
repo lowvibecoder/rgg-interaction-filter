@@ -81,7 +81,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
           borderColor: "divider",
           bgcolor: "#1a1a1a",
           fontWeight: 700,
-          fontSize: "0.875rem",
+          fontSize: "1rem",
           position: "sticky",
           top: 0,
           zIndex: 10,
@@ -108,13 +108,13 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
         >
           <Typography
             variant="body2"
-            sx={{ width: 70, flexShrink: 0, whiteSpace: "nowrap", color: "text.secondary", lineHeight: 1.3 }}
+            sx={{ width: 70, flexShrink: 0, whiteSpace: "nowrap", color: "text.secondary", lineHeight: 1.3, fontSize: "1rem" }}
           >
             {dayjs(Number(row.date_added)).format("DD.MM")}
             <br />
             {dayjs(Number(row.date_added)).format("HH:mm")}
           </Typography>
-          <Typography variant="body2" sx={{ width: 120, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+          <Typography variant="body2" sx={{ width: 120, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", fontSize: "1rem" }}>
             {row.sender_name}
           </Typography>
           <Stack
@@ -128,6 +128,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
                 label={r.recipient_name}
                 size="small"
                 variant="outlined"
+                sx={{ fontSize: "0.9rem" }}
               />
             ))}
           </Stack>
@@ -137,7 +138,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ whiteSpace: "pre-line", minWidth: 200 }}
+            sx={{ whiteSpace: "pre-line", minWidth: 200, fontSize: "1rem" }}
           >
             {row.note || ""}
           </Typography>
@@ -150,7 +151,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
         <IconButton size="small" onClick={() => goToPage(page - 1)} disabled={page <= 1}>
           <KeyboardArrowLeft />
         </IconButton>
-        <Typography variant="body2" color="text.secondary" sx={{ mx: 1 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mx: 1, fontSize: "1rem" }}>
           {page} / {totalPages} (всего: {total})
         </Typography>
         <IconButton size="small" onClick={() => goToPage(page + 1)} disabled={page >= totalPages}>
@@ -179,7 +180,6 @@ function GameActionChip({
 
   const chip = (
     <Typography
-      variant="caption"
       onClick={copyAction}
       sx={{
         display: "inline-block",
@@ -195,6 +195,7 @@ function GameActionChip({
         whiteSpace: "normal",
         cursor: "pointer",
         userSelect: "none",
+        fontSize: "1rem",
       }}
     >
       {actionType}
@@ -206,10 +207,10 @@ function GameActionChip({
       <Tooltip
         title={
           <Box>
-            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5, fontSize: "0.9rem" }}>
               {actionType}
             </Typography>
-            <Typography variant="caption" sx={{ whiteSpace: "pre-line", fontSize: "0.75rem" }}>
+            <Typography variant="caption" sx={{ whiteSpace: "pre-line", fontSize: "0.85rem" }}>
               {description}
             </Typography>
           </Box>
