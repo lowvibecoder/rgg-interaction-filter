@@ -64,7 +64,6 @@ export async function GET() {
 
   let invUpdated = false;
   let intUpdated = false;
-  let invTotal = 0;
 
   try {
     await ensureTables();
@@ -97,8 +96,7 @@ export async function GET() {
       );
 
       if (anyInvChanged) {
-        const invResult = await fetchAndUpsertInventories();
-        invTotal = invResult.total;
+        await fetchAndUpsertInventories();
         invUpdated = true;
       }
     }
@@ -142,6 +140,5 @@ export async function GET() {
     refreshed: invUpdated || intUpdated,
     inventory: needInv ? (invUpdated ? "updated" : "unchanged") : "skipped",
     interactions: needInt ? (intUpdated ? "updated" : "unchanged") : "skipped",
-    invTotal,
   });
 }
