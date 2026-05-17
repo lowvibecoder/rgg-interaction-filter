@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import {
   getCachedInventoryItems, getCachedGameItems, getCachedPlayerOverviews,
   getCachedInventoryLastUpdated, getCachedPlayerOverviewLastUpdated,
-  getCachedPlayersByInventoryItem,
+  getCachedPlayersByInventoryItem, getCachedAllInventoryItems,
 } from "@/lib/redisCache";
 import InventoriesPageClient from "@/components/InventoriesPageClient";
 
@@ -18,9 +18,9 @@ export const revalidate = 300;
 
 export default async function InventoriesPage({ searchParams }: PageProps) {
   const { item, q, panel } = await searchParams;
-  // Always get ALL items (no server-side filtering — client handles it)
-  const [allItems, gameItems, lastUpdated, overview, overviewLastUpdated] = await Promise.all([
+  const [allItems, allInventoryItems, gameItems, lastUpdated, overview, overviewLastUpdated] = await Promise.all([
     getCachedInventoryItems(),
+    getCachedAllInventoryItems(),
     getCachedGameItems(),
     getCachedInventoryLastUpdated(),
     getCachedPlayerOverviews(),
@@ -39,6 +39,7 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
     <InventoriesPageClient
       overview={overview}
       allItems={allItems}
+      allInventoryItems={allInventoryItems}
       players={players}
       itemInfo={itemInfo}
       selectedItem={item || ""}

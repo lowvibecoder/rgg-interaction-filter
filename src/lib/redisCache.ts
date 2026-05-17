@@ -6,6 +6,7 @@ import {
 import {
   getUniqueItemNames, getPlayersByItem, getPlayerOverviews,
   getInventoryLastUpdated, getPlayerOverviewLastUpdated,
+  getAllInventoryItems,
 } from "./inventoryCache";
 
 const TTL = 300;
@@ -77,6 +78,10 @@ export function getCachedActionTypes(filters?: {
 
 export function getCachedPlayersByInventoryItem(itemName: string) {
   return cached(`cache:players-by-item:${itemName}`, () => getPlayersByItem(itemName));
+}
+
+export function getCachedAllInventoryItems() {
+  return cached("cache:all-inventory-items", () => getAllInventoryItems());
 }
 
 export async function invalidateAllCache() {

@@ -40,6 +40,7 @@ interface PlayerInventoryItem {
 interface Props {
   overview: PlayerOverview[];
   allItems: string[];
+  allInventoryItems: { playerName: string; itemName: string; itemType: string; quantity: number }[];
   players: PlayerResult[];
   itemInfo: string | null;
   selectedItem: string;
@@ -179,7 +180,7 @@ function PlayerInventoryModal({ player, gameItemMap, onClose }: {
 }
 
 export default function InventoriesPageClient({
-  overview, allItems, players, itemInfo, selectedItem,
+  overview, allItems, allInventoryItems, players, itemInfo, selectedItem,
   lastUpdated, overviewLastUpdated, q: ssrQ, panel: ssrPanel, gameItemMap,
 }: Props) {
   const router = useRouter();
@@ -202,6 +203,14 @@ export default function InventoriesPageClient({
   const filteredOverview = useMemo(() => overview.filter((p) => ACTIVE_SET.has(p.player_name)), [overview]);
 
   const filteredItems = useMemo(() => filterItems(allItems, localQ, gameItemMap), [allItems, localQ, gameItemMap]);
+
+  const sortedInventoryItems = useMemo(() => {
+    return [...allInventoryItems].sort((a, b) =>
+      a.playerName.localeCompare(b.playerName) ||
+      a.itemType.localeCompare(b.itemType) ||
+      a.itemName.localeCompare(b.itemName)
+    );
+  }, [allInventoryItems]);
 
   const togglePanel = useCallback((open: boolean) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -318,7 +327,40 @@ export default function InventoriesPageClient({
               </Typography>
             )
           ) : (
-            <Typography color="text.secondary">Введите поисковый запрос или откройте общую таблицу</Typography>
+            <Box>
+              <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                Все предметы ({sortedInventoryItems.length})
+              </Typography>
+              <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxHeight: 600, overflow: "auto" }}>
+                <Table size="small" stickyHeader sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "0.8rem" } }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {sortedInventoryItems.map((item, idx) => (
+                      <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
+                        <TableCell>{item.playerName}</TableCell>
+                        <TableCell>{item.itemName}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
+                            size="small"
+                            color={item.itemType === "effect" ? "warning" : item.itemType === "item" ? "primary" : "secondary"}
+                            sx={{ height: 20, fontSize: "0.7rem" }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">{item.quantity}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
           )}
         </Box>
 
