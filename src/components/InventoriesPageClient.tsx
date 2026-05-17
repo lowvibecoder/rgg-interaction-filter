@@ -426,28 +426,63 @@ export default function InventoriesPageClient({
                   <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "1rem" } }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+                        {viewMode === "summed" ? (
+                          <>
+                            <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
+                            <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Игроки</TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+                          </>
+                        )}
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {players.map((p) => (
-                        <TableRow key={p.player_name + p.item_type} sx={{ "&:last-of-type td": { border: 0 } }}>
-                          <TableCell>{p.player_name}</TableCell>
+                      {viewMode === "summed" ? (
+                        <TableRow sx={{ "&:last-of-type td": { border: 0 } }}>
                           <TableCell>{selectedItem}</TableCell>
-                          <TableCell>
+                          <TableCell sx={{ width: 70 }}>
                             <Chip
-                              label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
+                              label={players[0].item_type === "effect" ? "Эффект" : players[0].item_type === "item" ? "Предмет" : "Спецролл"}
                               size="small"
-                              color={p.item_type === "effect" ? "warning" : p.item_type === "item" ? "primary" : "secondary"}
+                              color={players[0].item_type === "effect" ? "warning" : players[0].item_type === "item" ? "primary" : "secondary"}
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
-                          <TableCell align="right">{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
+                          <TableCell align="right" sx={{ width: 50 }}>
+                            {players[0].item_type === "effect" ? players.length : players.reduce((s, p) => s + p.total_quantity, 0)}
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                              {players.map((p) => (
+                                <Chip key={p.player_name} label={p.player_name} size="small" sx={{ height: 24, fontSize: "1rem" }} />
+                              ))}
+                            </Box>
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        players.map((p) => (
+                          <TableRow key={p.player_name + p.item_type} sx={{ "&:last-of-type td": { border: 0 } }}>
+                            <TableCell>{p.player_name}</TableCell>
+                            <TableCell>{selectedItem}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
+                                size="small"
+                                color={p.item_type === "effect" ? "warning" : p.item_type === "item" ? "primary" : "secondary"}
+                                sx={{ height: 24, fontSize: "0.85rem" }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
