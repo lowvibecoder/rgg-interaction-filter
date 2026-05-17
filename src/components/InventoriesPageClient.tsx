@@ -446,7 +446,11 @@ export default function InventoriesPageClient({
                     <TableBody>
                       {viewMode === "summed" ? (
                         <TableRow sx={{ "&:last-of-type td": { border: 0 } }}>
-                          <TableCell>{selectedItem}</TableCell>
+                          <TableCell>
+                            <Tooltip title={gameItemMap[selectedItem] || ""} arrow placement="right">
+                              <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(selectedItem)}>{selectedItem}</span>
+                            </Tooltip>
+                          </TableCell>
                           <TableCell sx={{ width: 70 }}>
                             <Chip
                               label={players[0].item_type === "effect" ? "Эффект" : players[0].item_type === "item" ? "Предмет" : "Спецролл"}
@@ -470,7 +474,11 @@ export default function InventoriesPageClient({
                         players.map((p) => (
                           <TableRow key={p.player_name + p.item_type} sx={{ "&:last-of-type td": { border: 0 } }}>
                             <TableCell>{p.player_name}</TableCell>
-                            <TableCell>{selectedItem}</TableCell>
+                            <TableCell>
+                              <Tooltip title={gameItemMap[selectedItem] || ""} arrow placement="right">
+                                <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(selectedItem)}>{selectedItem}</span>
+                              </Tooltip>
+                            </TableCell>
                             <TableCell>
                               <Chip
                                 label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
@@ -545,7 +553,7 @@ export default function InventoriesPageClient({
                         <TableRow key={`${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
                           <TableCell>
                             <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
-                              <span>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
+                              <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(item.itemName)}>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
                             </Tooltip>
                           </TableCell>
                           <TableCell sx={{ width: 70 }}>
@@ -570,7 +578,7 @@ export default function InventoriesPageClient({
                           <TableCell sx={{ width: 100 }}>{item.playerName}</TableCell>
                           <TableCell>
                             <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
-                              <span>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
+                              <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(item.itemName)}>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
                             </Tooltip>
                           </TableCell>
                           <TableCell sx={{ width: 70 }}>
