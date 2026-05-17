@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import {
   getPlayersByInventoryItem,
-  getInventoryLastUpdated, getPlayerOverviewLastUpdated,
-  getCachedInventoryItems, getCachedGameItems, getCachedPlayerOverviews,
 } from "@/lib/db";
+import {
+  getCachedInventoryItems, getCachedGameItems, getCachedPlayerOverviews,
+  getCachedInventoryLastUpdated, getCachedPlayerOverviewLastUpdated,
+} from "@/lib/redisCache";
 import InventoriesPageClient from "@/components/InventoriesPageClient";
 
 export const metadata: Metadata = {
@@ -22,9 +24,9 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
   const [allItems, gameItems, lastUpdated, overview, overviewLastUpdated] = await Promise.all([
     getCachedInventoryItems(),
     getCachedGameItems(),
-    getInventoryLastUpdated(),
+    getCachedInventoryLastUpdated(),
     getCachedPlayerOverviews(),
-    getPlayerOverviewLastUpdated(),
+    getCachedPlayerOverviewLastUpdated(),
   ]);
 
   const gameItemMap: Record<string, string> = {};

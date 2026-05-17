@@ -9,8 +9,8 @@ import {
   getCachedActionTypes,
   getCachedDateRange,
   getCachedGameItems,
-  getInteractionsLastUpdated,
-} from "@/lib/db";
+  getCachedInteractionsLastUpdated,
+} from "@/lib/redisCache";
 
 interface PageProps {
   searchParams: Promise<{
@@ -56,7 +56,7 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
       }),
       getCachedDateRange(),
       getCachedGameItems(),
-      getInteractionsLastUpdated(),
+      getCachedInteractionsLastUpdated(),
     ]);
 
   const gameItemMap: Record<string, string> = {};
