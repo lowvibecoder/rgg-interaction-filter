@@ -7,6 +7,7 @@ import {
   TableHead, TableRow, Paper, Chip, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, Button, ToggleButtonGroup, ToggleButton,
   List, ListItemButton, ListItemText, CircularProgress, Tooltip,
+  Checkbox, FormControlLabel, FormGroup,
 } from "@mui/material";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
@@ -37,6 +38,14 @@ interface PlayerInventoryItem {
   source: string | null;
 }
 
+interface InventoryItemWithTimer {
+  playerName: string;
+  itemName: string;
+  itemType: string;
+  quantity: number;
+  timer: number | null;
+}
+
 interface Props {
   overview: PlayerOverview[];
   allItems: string[];
@@ -51,24 +60,37 @@ interface Props {
   gameItemMap: Record<string, string>;
 }
 
-function filterItems(items: string[], q: string, gameItemMap: Record<string, string>): string[] {
-  if (!q) return items;
+function filterItems(items: string[], q: string, gameItemMap: Record<string, string>, hideEffects: boolean, hideItems: boolean, hideSpecialRolls: boolean): string[] {
+  if (!q && !hideEffects && !hideItems && !hideSpecialRolls) return items;
   const lower = q.toLowerCase();
   return items.filter((name) => {
+    const desc = gameItemMap[name] || "";
+    const itemType = getItemTypeFromMap(name, gameItemMap);
+    if (hideEffects && itemType === "effect") return false;
+    if (hideItems && itemType === "item") return false;
+    if (hideSpecialRolls && itemType === "special_roll") return false;
+    if (!q) return true;
     if (name.toLowerCase().includes(lower)) return true;
-    const desc = gameItemMap[name];
     if (desc && desc.toLowerCase().includes(lower)) return true;
     return false;
   });
 }
 
+function getItemTypeFromMap(itemName: string, gameItemMap: Record<string, string>): string {
+  const desc = gameItemMap[itemName] || "";
+  if (desc.includes("Эффект")) return "effect";
+  if (desc.includes("Спецролл")) return "special_roll";
+  return "item";
+}
+
 function extractTimer(description: string, itemName: string): number | null {
   if (!description) return null;
+  const escaped = itemName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const patterns = [
-    new RegExp(`${itemName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*?(\\d+)\\s*сек`, "i"),
-    new RegExp(`таймера\\s+${itemName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*?(\\d+)\\s*сек`, "i"),
-    new RegExp(`${itemName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*?(\\d+)\\s*мин`, "i"),
-    new RegExp(`таймера\\s+${itemName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*?(\\d+)\\s*мин`, "i"),
+    new RegExp(`${escaped}.*?(\\d+)\\s*сек`, "i"),
+    new RegExp(`таймера\\s+${escaped}.*?(\\d+)\\s*сек`, "i"),
+    new RegExp(`${escaped}.*?(\\d+)\\s*мин`, "i"),
+    new RegExp(`таймера\\s+${escaped}.*?(\\d+)\\s*мин`, "i"),
   ];
   for (const re of patterns) {
     const m = description.match(re);
@@ -213,6 +235,9 @@ export default function InventoriesPageClient({
   const urlQ = searchParams.get("q");
   const panel = searchParams.get("panel") ?? ssrPanel;
   const viewMode = searchParams.get("view") ?? "items";
+  const hideEffects = searchParams.get("hideEffects") !== "false";
+  const hideItems = searchParams.get("hideItems") === "true";
+  const hideSpecialRolls = searchParams.get("hideSpecialRolls") !== "false";
   const [localQ, setLocalQ] = useState(urlQ ?? ssrQ);
 
   useEffect(() => {
@@ -223,23 +248,33 @@ export default function InventoriesPageClient({
   const showOverview = showSearchArea ? panel === "open" : panel !== "closed";
 
   const filteredOverview = useMemo(() => overview.filter((p) => ACTIVE_SET.has(p.player_name)), [overview]);
-  const filteredItems = useMemo(() => filterItems(allItems, localQ, gameItemMap), [allItems, localQ, gameItemMap]);
+  const filteredItems = useMemo(() => filterItems(allItems, localQ, gameItemMap, hideEffects, hideItems, hideSpecialRolls), [allItems, localQ, gameItemMap, hideEffects, hideItems, hideSpecialRolls]);
 
-  const sortedInventoryItems = useMemo(() => {
-    return [...allInventoryItems].map((item) => {
-      const timer = item.itemType === "effect" ? extractTimer(gameItemMap[item.itemName], item.itemName) : null;
+  const allItemsWithTimers: InventoryItemWithTimer[] = useMemo(() => {
+    return allInventoryItems.map((item) => {
+      const desc = gameItemMap[item.itemName] || "";
+      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
       return { ...item, timer };
-    }).sort((a, b) =>
+    });
+  }, [allInventoryItems, gameItemMap]);
+
+  const filteredItemsWithTimers = useMemo(() => {
+    let filtered = allItemsWithTimers;
+    if (hideEffects) filtered = filtered.filter((i) => i.itemType !== "effect");
+    if (hideItems) filtered = filtered.filter((i) => i.itemType !== "item");
+    if (hideSpecialRolls) filtered = filtered.filter((i) => i.itemType !== "special_roll");
+    return filtered.sort((a, b) =>
       a.playerName.localeCompare(b.playerName) ||
       a.itemType.localeCompare(b.itemType) ||
       a.itemName.localeCompare(b.itemName)
     );
-  }, [allInventoryItems, gameItemMap]);
+  }, [allItemsWithTimers, hideEffects, hideItems, hideSpecialRolls]);
 
   const summedItems = useMemo(() => {
     const map = new Map<string, { itemName: string; itemType: string; totalQuantity: number; players: string[]; timer: number | null }>();
     for (const item of allInventoryItems) {
-      const timer = item.itemType === "effect" ? extractTimer(gameItemMap[item.itemName], item.itemName) : null;
+      const desc = gameItemMap[item.itemName] || "";
+      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
       const key = `${item.itemName}||${item.itemType}`;
       const existing = map.get(key);
       if (existing) {
@@ -259,11 +294,15 @@ export default function InventoriesPageClient({
         });
       }
     }
-    return [...map.values()].sort((a, b) =>
+    let result = [...map.values()];
+    if (hideEffects) result = result.filter((i) => i.itemType !== "effect");
+    if (hideItems) result = result.filter((i) => i.itemType !== "item");
+    if (hideSpecialRolls) result = result.filter((i) => i.itemType !== "special_roll");
+    return result.sort((a, b) =>
       a.itemType.localeCompare(b.itemType) ||
       a.itemName.localeCompare(b.itemName)
     );
-  }, [allInventoryItems, gameItemMap]);
+  }, [allInventoryItems, gameItemMap, hideEffects, hideItems, hideSpecialRolls]);
 
   const togglePanel = useCallback((open: boolean) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -293,11 +332,20 @@ export default function InventoriesPageClient({
     router.push(`/inventories?${params.toString()}`);
   }, [router, searchParams]);
 
+  const toggleFilter = useCallback((key: string, value: boolean) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(key, String(value));
+    router.push(`/inventories?${params.toString()}`);
+  }, [router, searchParams]);
+
   const resetFilters = useCallback(() => {
     setLocalQ("");
     const params = new URLSearchParams();
     params.set("panel", "open");
     params.set("view", "items");
+    params.set("hideEffects", "true");
+    params.set("hideItems", "false");
+    params.set("hideSpecialRolls", "true");
     router.push(`/inventories?${params.toString()}`);
   }, [router]);
 
@@ -338,7 +386,7 @@ export default function InventoriesPageClient({
         </Button>
       </Box>
 
-      <Box sx={{ display: "flex", position: "relative", minHeight: 400 }}>
+      <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {showSearchArea ? (
             selectedItem ? (
@@ -399,9 +447,28 @@ export default function InventoriesPageClient({
             )
           ) : (
             <Box>
-              <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                Все предметы ({viewMode === "summed" ? summedItems.length : sortedInventoryItems.length})
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  Все предметы ({viewMode === "summed" ? summedItems.length : filteredItemsWithTimers.length})
+                </Typography>
+                <FormGroup row sx={{ "& .MuiFormControlLabel-root": { mr: 1 } }}>
+                  <FormControlLabel
+                    control={<Checkbox size="small" checked={hideEffects} onChange={(e) => toggleFilter("hideEffects", e.target.checked)} />}
+                    label="Без эффектов"
+                    sx={{ "& .MuiFormControlLabel-label": { fontSize: "0.9rem" } }}
+                  />
+                  <FormControlLabel
+                    control={<Checkbox size="small" checked={hideItems} onChange={(e) => toggleFilter("hideItems", e.target.checked)} />}
+                    label="Без предметов"
+                    sx={{ "& .MuiFormControlLabel-label": { fontSize: "0.9rem" } }}
+                  />
+                  <FormControlLabel
+                    control={<Checkbox size="small" checked={hideSpecialRolls} onChange={(e) => toggleFilter("hideSpecialRolls", e.target.checked)} />}
+                    label="Без спецроллов"
+                    sx={{ "& .MuiFormControlLabel-label": { fontSize: "0.9rem" } }}
+                  />
+                </FormGroup>
+              </Box>
               <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "fit-content" }}>
                 <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "1rem", whiteSpace: "nowrap" } }}>
                   <TableHead>
@@ -448,7 +515,7 @@ export default function InventoriesPageClient({
                           </Box>
                         </TableCell>
                       </TableRow>
-                    )) : sortedInventoryItems.map((item, idx) => (
+                    )) : filteredItemsWithTimers.map((item, idx) => (
                       <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
                         <TableCell sx={{ width: 100 }}>{item.playerName}</TableCell>
                         <TableCell>
@@ -474,83 +541,59 @@ export default function InventoriesPageClient({
           )}
         </Box>
 
-        {!showOverview && (
-          <IconButton
-            onClick={() => togglePanel(true)}
-            sx={{
-              position: "sticky",
-              top: 8,
-              zIndex: 10,
-              color: "text.secondary",
-              flexShrink: 0,
-              alignSelf: "flex-start",
-              ml: 1,
-            }}
-          >
-            <ArrowBackIosNewIcon />
-          </IconButton>
-        )}
-
-        {showOverview && (
-          <Paper
-            sx={{
-              width: 480,
-              p: 1,
-              bgcolor: "background.paper",
-              flexShrink: 0,
-              position: "sticky",
-              top: 8,
-              alignSelf: "flex-start",
-              maxHeight: "calc(100vh - 16px)",
-              overflow: "auto",
-              ml: 1,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-              <IconButton size="small" onClick={() => togglePanel(false)}>
-                <ArrowForwardIosIcon fontSize="small" />
-              </IconButton>
-              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
-                Общая информация
-              </Typography>
-              <LiveTimestamp date={overviewLastUpdated ?? null} />
-            </Box>
-            <TableContainer sx={{ overflowX: "auto" }}>
-              <Table size="small" sx={{ "& td, & th": { whiteSpace: "nowrap", px: 0.5, py: 0.3, fontSize: "1rem" } }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Участник</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Монеток</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Слёз</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Эффектов</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Предметов</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Спецроллов</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredOverview.map((p) => (
-                    <TableRow
-                      key={p.player_name}
-                      sx={{ "&:last-of-type td": { border: 0 } }}
-                    >
-                      <TableCell
-                        sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline", color: "primary.main" }, fontSize: "1rem", py: 0.3 }}
-                        onClick={() => setModalPlayer(p.player_name)}
-                      >
-                        {p.player_name}
-                      </TableCell>
-                      <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.coins}</TableCell>
-                      <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.tears}</TableCell>
-                      <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.effects}</TableCell>
-                      <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.items}</TableCell>
-                      <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.special_rolls}</TableCell>
+        <Box sx={{ flexShrink: 0, position: "sticky", top: 8, alignSelf: "flex-start", maxHeight: "calc(100vh - 16px)", overflow: "auto" }}>
+          {showOverview ? (
+            <Paper sx={{ width: 540, p: 1, bgcolor: "background.paper" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                <IconButton size="small" onClick={() => togglePanel(false)}>
+                  <ArrowForwardIosIcon fontSize="small" />
+                </IconButton>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
+                  Общая информация
+                </Typography>
+                <LiveTimestamp date={overviewLastUpdated ?? null} />
+              </Box>
+              <TableContainer sx={{ overflowX: "auto" }}>
+                <Table size="small" sx={{ "& td, & th": { whiteSpace: "nowrap", px: 0.5, py: 0.3, fontSize: "1rem" } }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Участник</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Монеток</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Слёз</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Эффектов</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Предметов</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Спецроллов</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        )}
+                  </TableHead>
+                  <TableBody>
+                    {filteredOverview.map((p) => (
+                      <TableRow key={p.player_name} sx={{ "&:last-of-type td": { border: 0 } }}>
+                        <TableCell
+                          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline", color: "primary.main" }, fontSize: "1rem", py: 0.3 }}
+                          onClick={() => setModalPlayer(p.player_name)}
+                        >
+                          {p.player_name}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.coins}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.tears}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.effects}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.items}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.special_rolls}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          ) : (
+            <IconButton
+              onClick={() => togglePanel(true)}
+              sx={{ color: "text.secondary" }}
+            >
+              <ArrowBackIosNewIcon />
+            </IconButton>
+          )}
+        </Box>
       </Box>
     </Box>
   );
