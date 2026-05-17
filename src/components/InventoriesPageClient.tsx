@@ -469,7 +469,7 @@ export default function InventoriesPageClient({
                   />
                 </FormGroup>
               </Box>
-              <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "fit-content" }}>
+              <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "100%" }}>
                 <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "1rem", whiteSpace: "nowrap" } }}>
                   <TableHead>
                     <TableRow>
@@ -510,7 +510,7 @@ export default function InventoriesPageClient({
                         <TableCell sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
                           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                             {item.players.map((p) => (
-                              <Chip key={p} label={p} size="small" sx={{ height: 20, fontSize: "0.7rem" }} />
+                              <Chip key={p} label={p} size="small" sx={{ height: 24, fontSize: "1rem" }} />
                             ))}
                           </Box>
                         </TableCell>
@@ -554,31 +554,31 @@ export default function InventoriesPageClient({
                 <LiveTimestamp date={overviewLastUpdated ?? null} />
               </Box>
               <TableContainer sx={{ overflowX: "auto" }}>
-                <Table size="small" sx={{ "& td, & th": { whiteSpace: "nowrap", px: 0.5, py: 0.3, fontSize: "1rem" } }}>
+                <Table size="small" sx={{ "& td, & th": { whiteSpace: "nowrap", px: 0.5, py: 0.3, fontSize: "0.85rem" } }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Участник</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Монеток</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Слёз</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Эффектов</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Предметов</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>Спецроллов</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: "0.8rem" }}>Участник</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>Монеток</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>Слёз</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>Эффектов</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>Предметов</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>Спецроллов</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {filteredOverview.map((p) => (
                       <TableRow key={p.player_name} sx={{ "&:last-of-type td": { border: 0 } }}>
                         <TableCell
-                          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline", color: "primary.main" }, fontSize: "1rem", py: 0.3 }}
+                          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline", color: "primary.main" }, fontSize: "0.85rem", py: 0.3 }}
                           onClick={() => setModalPlayer(p.player_name)}
                         >
                           {p.player_name}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.coins}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.tears}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.effects}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.items}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: "1rem", py: 0.3 }}>{p.special_rolls}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "0.85rem", py: 0.3 }}>{p.coins}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "0.85rem", py: 0.3 }}>{p.tears}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "0.85rem", py: 0.3 }}>{p.effects}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "0.85rem", py: 0.3 }}>{p.items}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: "0.85rem", py: 0.3 }}>{p.special_rolls}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
