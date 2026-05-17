@@ -1,40 +1,36 @@
 import { NextResponse } from "next/server";
-import { getAllInventoryItems, getPlayerOverviews } from "@/lib/inventoryCache";
 import { getRedis } from "@/lib/redis";
+import { InventoryItem } from "@/lib/inventoryCache";
+
+const INV_ALL_KEY = "inv:all";
 
 export async function GET() {
   const r = getRedis();
-  const items = await getAllInventoryItems();
-  const overviews = await getPlayerOverviews();
+  if (!r) return NextResponse.json({ error: "Redis not connected" });
 
-  let rawInvAll: string | null = null;
-  let rawInvMeta: string | null = null;
-  let rawInvOverview: string | null = null;
-  let testWrite = false;
-
-  if (r) {
-    try {
-      rawInvAll = await r.get("inv:all");
-      rawInvMeta = await r.get("inv:meta");
-      rawInvOverview = await r.get("inv:overview");
-
-      await r.set("debug:test", "ok", { ex: 60 });
-      const testRead = await r.get("debug:test");
-      testWrite = testRead === "ok";
-    } catch (e) {
-      rawInvAll = `error: ${e}`;
-    }
+  // Test 1: Direct read
+  const raw1 = await r.get<string>(INV_ALL_KEY);
+  
+  // Test 2: Read without type param
+  const raw2 = await r.get(INV_ALL_KEY);
+  
+  // Test 3: Try parsing
+  let parsed: any = null;
+  let parseError: string | null = null;
+  try {
+    parsed = raw1 ? JSON.parse(raw1) : null;
+  } catch (e: any) {
+    parseError = e.message;
   }
 
   return NextResponse.json({
-    redisConnected: !!r,
-    itemsCount: items.length,
-    overviewsCount: overviews.length,
-    rawInvAllLength: rawInvAll?.length ?? null,
-    rawInvMeta,
-    rawInvOverviewLength: rawInvOverview?.length ?? null,
-    testWrite,
-    sampleItems: items.slice(0, 3),
-    sampleOverviews: overviews.slice(0, 3),
+    raw1Type: typeof raw1,
+    raw1Length: raw1?.length ?? null,
+    raw1Preview: raw1 ? raw1.substring(0, 200) : null,
+    raw2Type: typeof raw2,
+    raw2Length: typeof raw2 === 'string' ? raw2.length : null,
+    parsedCount: parsed?.length ?? null,
+    parseError,
+    sample: parsed?.slice(0, 2) ?? null,
   });
 }
