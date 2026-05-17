@@ -19,10 +19,14 @@ export async function GET() {
   const needInt = intAge > REFRESH_INTERVAL_MS;
 
   if (!needInv && !needInt) {
-    return NextResponse.json({ refreshed: false, reason: "data fresh" });
+    return NextResponse.json({
+      status: "ok",
+      refreshed: false,
+      inventoryAge: Math.round(invAge / 60000),
+      interactionsAge: Math.round(intAge / 60000),
+    });
   }
 
-  // Await parsing synchronously — Vercel kills background tasks after response
   try {
     await ensureTables();
     if (needInv) {
@@ -33,11 +37,12 @@ export async function GET() {
       await fetchAndUpsertInteractions();
     }
   } catch (e) {
-    console.error("auto-refresh error:", e);
-    return NextResponse.json({ refreshed: false, error: String(e) });
+    return NextResponse.json({
+      status: "error",
+      error: String(e),
+    }, { status: 500 });
   }
 
-  // Invalidate cache so next page load gets fresh DB data
   if (needInv) {
     revalidateTag("inventory-items", "max");
     revalidateTag("player-overviews", "max");
@@ -47,6 +52,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
+    status: "ok",
     refreshed: true,
     inventory: needInv ? "updated" : "skipped",
     interactions: needInt ? "updated" : "skipped",

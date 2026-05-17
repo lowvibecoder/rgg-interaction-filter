@@ -5,7 +5,6 @@ import {
   getCachedInventoryItems, getCachedGameItems, getCachedPlayerOverviews,
 } from "@/lib/db";
 import InventoriesPageClient from "@/components/InventoriesPageClient";
-import AutoRefreshTrigger from "@/components/AutoRefreshTrigger";
 
 export const metadata: Metadata = {
   title: "Инвентари | RGG",
@@ -37,9 +36,7 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
   const itemInfo = item ? (gameItemMap[item] ?? null) : null;
 
   return (
-    <>
-      <AutoRefreshTrigger />
-      <InventoriesPageClient
+    <InventoriesPageClient
       overview={overview}
       allItems={allItems}
       players={players}
@@ -51,6 +48,5 @@ export default async function InventoriesPage({ searchParams }: PageProps) {
       panel={panel || "open"}
       gameItemMap={gameItemMap}
       />
-    </>
   );
 }
