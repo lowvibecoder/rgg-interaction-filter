@@ -422,7 +422,7 @@ export default function InventoriesPageClient({
                 </Typography>
               )}
               {players.length > 0 ? (
-                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", width: "100%", mt: 0.5 }}>
+                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600, mt: 0.5 }}>
                   <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "1rem" } }}>
                     <TableHead>
                       <TableRow>
@@ -446,12 +446,12 @@ export default function InventoriesPageClient({
                     <TableBody>
                       {viewMode === "summed" ? (
                         <TableRow sx={{ "&:last-of-type td": { border: 0 } }}>
-                          <TableCell sx={{ width: 100 }}>
+                          <TableCell>
                             <Tooltip title={gameItemMap[selectedItem] || ""} arrow placement="right">
                               <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(selectedItem)}>{selectedItem}</span>
                             </Tooltip>
                           </TableCell>
-                          <TableCell sx={{ width: 70 }}>
+                          <TableCell>
                             <Chip
                               label={players[0].item_type === "effect" ? "Эффект" : players[0].item_type === "item" ? "Предмет" : "Спецролл"}
                               size="small"
@@ -473,13 +473,13 @@ export default function InventoriesPageClient({
                       ) : (
                         players.map((p) => (
                           <TableRow key={p.player_name + p.item_type} sx={{ "&:last-of-type td": { border: 0 } }}>
-                            <TableCell sx={{ width: 100 }}>{p.player_name}</TableCell>
+                            <TableCell>{p.player_name}</TableCell>
                             <TableCell>
                               <Tooltip title={gameItemMap[selectedItem] || ""} arrow placement="right">
                                 <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(selectedItem)}>{selectedItem}</span>
                               </Tooltip>
                             </TableCell>
-                            <TableCell sx={{ width: 70 }}>
+                            <TableCell>
                               <Chip
                                 label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
                                 size="small"
@@ -487,7 +487,7 @@ export default function InventoriesPageClient({
                                 sx={{ height: 24, fontSize: "0.85rem" }}
                               />
                             </TableCell>
-                            <TableCell align="right" sx={{ width: 50 }}>{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
+                            <TableCell align="right">{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
                           </TableRow>
                         ))
                       )}
