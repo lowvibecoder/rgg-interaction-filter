@@ -3,7 +3,7 @@ import { revalidateTag } from "next/cache";
 import { getInventoryLastUpdated, getInteractionsLastUpdated } from "@/lib/db";
 import { fetchAndUpsertInventories, fetchAndUpsertInteractions, fetchAndUpsertOverview, ensureTables } from "@/lib/services";
 import { invalidateAllCache, getCachedInventoryLastUpdated, getCachedInteractionsLastUpdated } from "@/lib/redisCache";
-import { invalidateInteractionCache, setInteractionHash } from "@/lib/interactionCache";
+import { refreshInteractionCache, setInteractionHash } from "@/lib/interactionCache";
 import { getRedis } from "@/lib/redis";
 
 const INV_REFRESH_MS = 15 * 60 * 1000; // 15 minutes
@@ -122,7 +122,9 @@ export async function GET() {
 
   if (invUpdated || intUpdated) {
     await invalidateAllCache();
-    await invalidateInteractionCache();
+  }
+  if (intUpdated) {
+    await refreshInteractionCache();
   }
 
   if (invUpdated) {

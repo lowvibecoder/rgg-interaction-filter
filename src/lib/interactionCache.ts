@@ -3,6 +3,7 @@ import { getRedis } from "./redis";
 
 const CACHE_KEY = "interactions:all";
 const HASH_KEY = "interactions:hash";
+const LAST_SYNC_KEY = "interactions:lastSyncTs";
 
 interface CachedInteraction {
   id: string;
@@ -56,11 +57,70 @@ export async function setInteractionHash(hash: string) {
   if (r) await r.set(HASH_KEY, hash, { ex: 86400 * 7 });
 }
 
+// Called by healthz after parsing new interactions — merges only new rows into cache
+export async function refreshInteractionCache() {
+  const r = getRedis();
+  if (!r) return;
+
+  const sql = getSql();
+  const lastSync = await r.get<number>(LAST_SYNC_KEY) ?? 0;
+
+  // Only fetch rows newer than last sync
+  const newRows = await sql.query(
+    `SELECT id, date_added, sender_name, sender_login, action_type, note, raw_text, fetched_at
+     FROM interactions WHERE date_added > $1::bigint ORDER BY date_added DESC`,
+    [String(lastSync)]
+  ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; raw_text: string; fetched_at: string }[];
+
+  if (newRows.length === 0) return;
+
+  // Fetch recipients for new interactions
+  const newIds = newRows.map((r) => r.id);
+  const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
+  if (newIds.length > 0) {
+    const batchSize = 500;
+    for (let i = 0; i < newIds.length; i += batchSize) {
+      const chunk = newIds.slice(i, i + batchSize);
+      const placeholders = chunk.map((_, j) => `$${j + 1}`).join(",");
+      const recipientRows = await sql.query(
+        `SELECT interaction_id, recipient_name, recipient_login FROM interaction_recipients WHERE interaction_id IN (${placeholders})`,
+        chunk
+      ) as { interaction_id: string; recipient_name: string; recipient_login: string }[];
+      for (const row of recipientRows) {
+        if (!recipientsMap[row.interaction_id]) recipientsMap[row.interaction_id] = [];
+        recipientsMap[row.interaction_id].push({
+          recipient_name: row.recipient_name,
+          recipient_login: row.recipient_login,
+        });
+      }
+    }
+  }
+
+  // Merge into existing cache
+  const cachedJson = await r.get<string>(CACHE_KEY);
+  const cached: CachedInteraction[] = cachedJson ? JSON.parse(cachedJson) : [];
+  const existingIds = new Set(cached.map((c) => c.id));
+
+  for (const row of newRows) {
+    if (!existingIds.has(row.id)) {
+      cached.push({
+        ...row,
+        recipients: recipientsMap[row.id] || [],
+      });
+    }
+  }
+
+  cached.sort((a, b) => b.date_added - a.date_added);
+  await r.set(CACHE_KEY, JSON.stringify(cached), { ex: 86400 });
+  await r.set(LAST_SYNC_KEY, Date.now());
+}
+
 export async function invalidateInteractionCache() {
   const r = getRedis();
   if (r) {
     await r.del(CACHE_KEY);
     await r.del(HASH_KEY);
+    await r.del(LAST_SYNC_KEY);
   }
 }
 
@@ -80,6 +140,9 @@ async function getAllInteractions(): Promise<CachedInteraction[]> {
 
 async function fallbackFetch(): Promise<CachedInteraction[]> {
   const sql = getSql();
+  const r = getRedis();
+
+  // Initial build: fetch ALL from DB (only happens once, then cached in Redis)
   const rows = await sql.query(
     `SELECT i.id, i.date_added, i.sender_name, i.sender_login,
             i.action_type, i.note, i.raw_text, i.fetched_at
@@ -114,9 +177,9 @@ async function fallbackFetch(): Promise<CachedInteraction[]> {
     recipients: recipientsMap[r.id] || [],
   }));
 
-  const r = getRedis();
   if (r) {
     await r.set(CACHE_KEY, JSON.stringify(result), { ex: 86400 });
+    await r.set(LAST_SYNC_KEY, Date.now());
   }
 
   return result;
