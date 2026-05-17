@@ -22,34 +22,33 @@ export async function GET() {
     return NextResponse.json({ refreshed: false, reason: "data fresh" });
   }
 
-  // Trigger in background — don't await
-  (async () => {
-    try {
-      await ensureTables();
-      if (needInv) {
-        await fetchAndUpsertInventories();
-        await fetchAndUpsertOverview();
-      }
-      if (needInt) {
-        await fetchAndUpsertInteractions();
-      }
-    } catch (e) {
-      console.error("auto-refresh error:", e);
-    } finally {
-      // Always revalidate so next request gets fresh DB data
-      if (needInv) {
-        revalidateTag("inventory-items", "max");
-        revalidateTag("player-overviews", "max");
-      }
-      if (needInt) {
-        revalidateTag("interactions", "max");
-      }
+  // Await parsing synchronously — Vercel kills background tasks after response
+  try {
+    await ensureTables();
+    if (needInv) {
+      await fetchAndUpsertInventories();
+      await fetchAndUpsertOverview();
     }
-  })();
+    if (needInt) {
+      await fetchAndUpsertInteractions();
+    }
+  } catch (e) {
+    console.error("auto-refresh error:", e);
+    return NextResponse.json({ refreshed: false, error: String(e) });
+  }
+
+  // Invalidate cache so next page load gets fresh DB data
+  if (needInv) {
+    revalidateTag("inventory-items", "max");
+    revalidateTag("player-overviews", "max");
+  }
+  if (needInt) {
+    revalidateTag("interactions", "max");
+  }
 
   return NextResponse.json({
     refreshed: true,
-    inventory: needInv ? "triggered" : "skipped",
-    interactions: needInt ? "triggered" : "skipped",
+    inventory: needInv ? "updated" : "skipped",
+    interactions: needInt ? "updated" : "skipped",
   });
 }
