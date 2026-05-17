@@ -100,8 +100,12 @@ export async function fetchAndUpsertInventories() {
   const results = await Promise.allSettled(
     ACTIVE_PLAYERS.map(async (player) => {
       const res = await fetch(`https://rgg.land/inventories/${encodeURIComponent(player.toLowerCase())}`, {
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) {
+        console.error(`Failed to fetch inventory for ${player}: ${res.status}`);
+        return { player, items: [] };
+      }
       const items = parseInventoryPage(await res.text(), player);
       return { player, items };
     })
