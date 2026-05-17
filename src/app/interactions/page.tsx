@@ -2,6 +2,7 @@ import { Typography, Stack, Box } from "@mui/material";
 import InteractionsFilters from "@/components/InteractionsFilters";
 import InteractionsTable from "@/components/InteractionsTable";
 import LiveTimestamp from "@/components/LiveTimestamp";
+import AutoRefreshTrigger from "@/components/AutoRefreshTrigger";
 import { getCachedInteractionsDelta } from "@/lib/interactionCache";
 import {
   getCachedSenders,
@@ -76,6 +77,7 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
+      <AutoRefreshTrigger />
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
         Взаимодействия{" "}
         <LiveTimestamp date={toIsoString(lastUpdated)} label="обновлено" />
