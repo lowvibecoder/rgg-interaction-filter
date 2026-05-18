@@ -45,7 +45,7 @@ export interface InteractionRow {
   sender_login: string;
   action_type: string;
   note: string;
-  raw_text: string;
+  raw_text?: string;
   fetched_at: string;
 }
 

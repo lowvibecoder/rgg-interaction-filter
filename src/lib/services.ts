@@ -69,6 +69,8 @@ export async function ensureTables() {
       PRIMARY KEY (name, source)
     )
   `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_recipients_name_interaction ON interaction_recipients(recipient_name, interaction_id)`;
 }
 
 export async function fetchAndUpsertInteractions() {

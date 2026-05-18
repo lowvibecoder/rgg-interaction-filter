@@ -35,47 +35,21 @@ export async function batchUpsertInteractions(
   const sql = getSql();
   if (interactions.length === 0) return { inserted: 0, updated: 0 };
 
-  // Find which IDs already exist
-  const ids = interactions.map((x) => x.id);
-  const existingIds = new Set<string>();
-  const batchSize = 500;
-  for (let i = 0; i < ids.length; i += batchSize) {
-    const chunk = ids.slice(i, i + batchSize);
-    const ph = chunk.map((_, j) => `$${j + 1}`).join(", ");
-    const rows = await sql.query(`SELECT id FROM interactions WHERE id IN (${ph})`, chunk) as { id: string }[];
-    for (const r of rows) existingIds.add(r.id);
-  }
+  const fields = 8;
+  const values = interactions.map((_, i) => {
+    const base = i * fields;
+    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, NOW())`;
+  }).join(", ");
+  const params = interactions.flatMap((x) => [x.id, x.dateAdded, x.senderName, x.senderLogin, x.actionType, x.note, x.rawText]);
 
-  const newItems = interactions.filter((x) => !existingIds.has(x.id));
-  const existingItems = interactions.filter((x) => existingIds.has(x.id));
+  await sql.query(
+    `INSERT INTO interactions (id, date_added, sender_name, sender_login, action_type, note, raw_text, fetched_at)
+     VALUES ${values}
+     ON CONFLICT (id) DO UPDATE SET fetched_at = NOW()`,
+    params
+  );
 
-  let inserted = 0;
-  if (newItems.length > 0) {
-    const fields = 7;
-    const values = newItems.map((_, i) => {
-      const base = i * fields;
-      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, NOW())`;
-    }).join(", ");
-    const params = newItems.flatMap((x) => [x.id, x.dateAdded, x.senderName, x.senderLogin, x.actionType, x.note, x.rawText]);
-    await sql.query(
-      `INSERT INTO interactions (id, date_added, sender_name, sender_login, action_type, note, raw_text, fetched_at) VALUES ${values}`,
-      params
-    );
-    inserted = newItems.length;
-  }
-
-  let updated = 0;
-  if (existingItems.length > 0) {
-    const updateIds = existingItems.map((x) => x.id);
-    const placeholders = updateIds.map((_, i) => `$${i + 1}`).join(", ");
-    await sql.query(
-      `UPDATE interactions SET fetched_at = NOW() WHERE id IN (${placeholders})`,
-      updateIds
-    );
-    updated = existingItems.length;
-  }
-
-  return { inserted, updated };
+  return { inserted: interactions.length, updated: 0 };
 }
 
 export async function batchUpsertAllRecipients(
@@ -333,7 +307,7 @@ interface GameItemRecord {
 export async function getGameItems(): Promise<GameItemRecord[]> {
   const sql = getSql();
   return (await sql`
-    SELECT name, description, source, icon FROM game_items
+    SELECT name, description, source, icon FROM game_items ORDER BY name LIMIT 10000
   `) as GameItemRecord[];
 }
 
@@ -351,7 +325,7 @@ export async function getInventoryItems(searchTerm?: string): Promise<string[]> 
     return rows.map(r => r.item_name);
   }
   const rows = await sql`
-    SELECT DISTINCT item_name FROM player_items ORDER BY item_name
+    SELECT DISTINCT item_name FROM player_items ORDER BY item_name LIMIT 10000
   ` as { item_name: string }[];
   return rows.map(r => r.item_name);
 }
@@ -442,6 +416,7 @@ export async function getPlayerOverviews(): Promise<{
     SELECT player_name, coins, tears, effects, items, special_rolls
     FROM player_overview
     ORDER BY player_name
+    LIMIT 1000
   ` as { player_name: string; coins: number; tears: number; effects: number; items: number; special_rolls: number }[];
 }
 

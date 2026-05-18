@@ -1,4 +1,4 @@
-import { getSql } from "./db";
+import { getSql, getInteractions } from "./db";
 import { getRedis } from "./redis";
 
 const CACHE_KEY = "interactions:all";
@@ -12,7 +12,6 @@ interface CachedInteraction {
   sender_login: string;
   action_type: string;
   note: string;
-  raw_text: string;
   fetched_at: string;
   recipients: { recipient_name: string; recipient_login: string }[];
 }
@@ -48,6 +47,28 @@ export async function getCachedInteractionsDelta(query: InteractionQuery): Promi
   pageSize: number;
   totalPages: number;
 }> {
+  // Note filter requires raw_text which is not cached (bandwidth savings).
+  // Fall back to direct DB query when note filter is active.
+  if (query.note) {
+    const dbResult = await getInteractions(query);
+    return {
+      rows: dbResult.rows.map((r) => ({
+        id: r.id,
+        date_added: r.date_added,
+        sender_name: r.sender_name,
+        sender_login: r.sender_login,
+        action_type: r.action_type,
+        note: r.note,
+        fetched_at: r.fetched_at,
+        recipients: r.recipients,
+      })),
+      total: dbResult.total,
+      page: dbResult.page,
+      pageSize: dbResult.pageSize,
+      totalPages: dbResult.totalPages,
+    };
+  }
+
   const all = await getAllInteractions();
   return applyFiltersAndPagination(all, query);
 }
@@ -65,12 +86,12 @@ export async function refreshInteractionCache() {
   const sql = getSql();
   const lastSync = await r.get<number>(LAST_SYNC_KEY) ?? 0;
 
-  // Only fetch rows newer than last sync
+  // Only fetch rows newer than last sync (raw_text excluded — only needed for DB-level ILIKE filtering)
   const newRows = await sql.query(
-    `SELECT id, date_added, sender_name, sender_login, action_type, note, raw_text, fetched_at
+    `SELECT id, date_added, sender_name, sender_login, action_type, note, fetched_at
      FROM interactions WHERE date_added > $1::bigint ORDER BY date_added DESC`,
     [String(lastSync)]
-  ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; raw_text: string; fetched_at: string }[];
+  ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; fetched_at: string }[];
 
   if (newRows.length === 0) return;
 
@@ -145,12 +166,13 @@ async function fallbackFetch(): Promise<CachedInteraction[]> {
   const r = getRedis();
 
   // Initial build: fetch ALL from DB (only happens once, then cached in Redis)
+  // raw_text excluded — only needed for DB-level ILIKE filtering (note filter falls back to DB)
   const rows = await sql.query(
     `SELECT i.id, i.date_added, i.sender_name, i.sender_login,
-            i.action_type, i.note, i.raw_text, i.fetched_at
+            i.action_type, i.note, i.fetched_at
      FROM interactions i
      ORDER BY i.date_added DESC`
-  ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; raw_text: string; fetched_at: string }[];
+  ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; fetched_at: string }[];
 
   const ids = rows.map((r) => r.id);
   const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
@@ -213,8 +235,9 @@ function applyFiltersAndPagination(
     filtered = filtered.filter((r) => r.action_type === query.action);
   }
   if (query.note) {
-    const noteLower = query.note.toLowerCase();
-    filtered = filtered.filter((r) => r.raw_text.toLowerCase().includes(noteLower));
+    // Note filter requires raw_text (not in cache for bandwidth savings).
+    // Caller should fall back to DB query when note filter is active.
+    // Here we skip this filter — results will be unfiltered by note.
   }
   if (query.activeOnly) {
     const activeSet = new Set([
