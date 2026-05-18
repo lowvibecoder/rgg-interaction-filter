@@ -1,5 +1,6 @@
 import { getSql, getInteractions } from "./db";
 import { getRedis } from "./redis";
+import { ACTIVE_PLAYERS } from "./players";
 
 const CACHE_KEY = "interactions:all";
 const HASH_KEY = "interactions:hash";
@@ -240,11 +241,7 @@ function applyFiltersAndPagination(
     // Here we skip this filter — results will be unfiltered by note.
   }
   if (query.activeOnly) {
-    const activeSet = new Set([
-      "D_e_l_y","Ditoshey","Foxi","fropsya","itsMORIKO","kcIOxan","MariTerryCore",
-      "nedrugaya","pepelnayaa","rekvizit8bit","RUSTY","sad_moustache","snezha_mrr",
-      "sol1st","squimeh","STREAMIRKA","Tijoe","Wes_Play","WhiskeredPlay",
-    ]);
+    const activeSet = new Set(ACTIVE_PLAYERS);
     filtered = filtered.filter((r) => activeSet.has(r.sender_name));
   }
 

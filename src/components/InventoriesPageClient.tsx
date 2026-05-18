@@ -6,7 +6,7 @@ import {
   Box, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Chip, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, Button, ToggleButtonGroup, ToggleButton,
-  List, ListItemButton, ListItemText, CircularProgress, Tooltip,
+  List, ListItemButton, ListItemText, Tooltip,
   Checkbox, FormControlLabel, FormGroup,
 } from "@mui/material";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
@@ -120,41 +120,33 @@ function ItemLine({ item, description, onCopy }: { item: PlayerInventoryItem; de
   );
 }
 
-function PlayerInventoryModal({ player, gameItemMap, onClose }: {
+function PlayerInventoryModal({ player, allInventoryItems, gameItemMap, onClose }: {
   player: string | null;
+  allInventoryItems: { playerName: string; itemName: string; itemType: string; quantity: number }[];
   gameItemMap: Record<string, string>;
   onClose: () => void;
 }) {
-  const [data, setData] = useState<{
-    items: PlayerInventoryItem[];
-  } | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!player) { setData(null); return; }
-    setLoading(true);
-    fetch(`/api/inventory/${encodeURIComponent(player)}`)
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [player]);
-
   const open = player !== null;
 
-  const deduplicated = useMemo(() => {
-    if (!data) return null;
-    const seen = new Set<string>();
-    return data.items.filter((i) => {
-      const key = i.item_name;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [data]);
+  const playerItems = useMemo(() => {
+    if (!player) return null;
+    const map = new Map<string, PlayerInventoryItem>();
+    for (const item of allInventoryItems) {
+      if (item.playerName !== player) continue;
+      const key = `${item.itemName}||${item.itemType}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        map.set(key, { item_name: item.itemName, item_type: item.itemType, quantity: item.quantity, source: null });
+      }
+    }
+    return [...map.values()].sort((a, b) => a.item_type.localeCompare(b.item_type) || a.item_name.localeCompare(b.item_name));
+  }, [player, allInventoryItems]);
 
-  const effects = useMemo(() => deduplicated?.filter((i) => i.item_type === "effect") ?? [], [deduplicated]);
-  const ordinaryItems = useMemo(() => deduplicated?.filter((i) => i.item_type === "item") ?? [], [deduplicated]);
-  const specialRolls = useMemo(() => deduplicated?.filter((i) => i.item_type === "special_roll") ?? [], [deduplicated]);
+  const effects = useMemo(() => playerItems?.filter((i) => i.item_type === "effect") ?? [], [playerItems]);
+  const ordinaryItems = useMemo(() => playerItems?.filter((i) => i.item_type === "item") ?? [], [playerItems]);
+  const specialRolls = useMemo(() => playerItems?.filter((i) => i.item_type === "special_roll") ?? [], [playerItems]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -173,14 +165,7 @@ function PlayerInventoryModal({ player, gameItemMap, onClose }: {
               <ListItemButton
                 key={name}
                 selected={name === player}
-                onClick={() => {
-                  setLoading(true);
-                  setData(null);
-                  fetch(`/api/inventory/${encodeURIComponent(name)}`)
-                    .then((r) => r.json())
-                    .then((d) => { setData(d); setLoading(false); })
-                    .catch(() => setLoading(false));
-                }}
+                onClick={() => {}}
                 sx={{ borderRadius: 1, py: 0.15 }}
               >
                 <ListItemText
@@ -192,11 +177,7 @@ function PlayerInventoryModal({ player, gameItemMap, onClose }: {
           </List>
         </Box>
         <Box sx={{ flex: 1 }}>
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : !data ? (
+          {!player ? (
             <Typography color="text.secondary">Выберите игрока</Typography>
           ) : (
             <>
@@ -380,7 +361,7 @@ export default function InventoriesPageClient({
 
   return (
     <Box sx={{ maxWidth: 1400, mx: "auto", p: 2 }}>
-      <PlayerInventoryModal player={modalPlayer} gameItemMap={gameItemMap} onClose={() => setModalPlayer(null)} />
+      <PlayerInventoryModal player={modalPlayer} allInventoryItems={allInventoryItems} gameItemMap={gameItemMap} onClose={() => setModalPlayer(null)} />
 
       <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>

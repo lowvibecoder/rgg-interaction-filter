@@ -1,13 +1,12 @@
 import { getRedis } from "./redis";
+import { getSql } from "./db";
 import {
   getGameItems, getInteractionsLastUpdated, getDateRange,
-  getSenders, getRecipients, getActionTypes,
   getSendersAll, getRecipientsAll, getActionTypesAll,
 } from "./db";
 import {
   getUniqueItemNames, getPlayersByItem, getPlayerOverviews,
   getInventoryLastUpdated, getPlayerOverviewLastUpdated,
-  getAllInventoryItems,
 } from "./inventoryCache";
 
 const TTL = 300;
@@ -31,9 +30,8 @@ export function getCachedGameItems() {
   return cached("cache:game-items", () => getGameItems(), TTL_LONG);
 }
 
-export function getCachedInventoryItems(searchTerm?: string) {
-  const key = searchTerm ? `cache:inventory-items:${searchTerm}` : "cache:inventory-items";
-  return cached(key, () => getUniqueItemNames());
+export function getCachedInventoryItems() {
+  return cached("cache:inventory-items", () => getUniqueItemNames());
 }
 
 export function getCachedPlayerOverviews() {
@@ -56,27 +54,6 @@ export function getCachedDateRange() {
   return cached("cache:date-range", () => getDateRange());
 }
 
-export function getCachedSenders(filters?: {
-  dateFrom?: string; dateTo?: string; recipient?: string; action?: string; note?: string; activeOnly?: boolean;
-}) {
-  const key = `cache:senders:${JSON.stringify(filters ?? {})}`;
-  return cached(key, () => getSenders(filters));
-}
-
-export function getCachedRecipients(filters?: {
-  dateFrom?: string; dateTo?: string; sender?: string; action?: string; note?: string; activeOnly?: boolean;
-}) {
-  const key = `cache:recipients:${JSON.stringify(filters ?? {})}`;
-  return cached(key, () => getRecipients(filters));
-}
-
-export function getCachedActionTypes(filters?: {
-  dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; activeOnly?: boolean;
-}) {
-  const key = `cache:action-types:${JSON.stringify(filters ?? {})}`;
-  return cached(key, () => getActionTypes(filters));
-}
-
 export function getCachedSendersAll() {
   return cached("cache:senders:all", () => getSendersAll(), TTL_LONG);
 }
@@ -94,7 +71,27 @@ export function getCachedPlayersByInventoryItem(itemName: string) {
 }
 
 export async function getCachedAllInventoryItems() {
-  return getAllInventoryItems();
+  const r = getRedis();
+  if (r) {
+    try {
+      const raw = await r.get<unknown[]>("inv:all");
+      if (Array.isArray(raw) && raw.length > 0) return raw as { playerName: string; itemName: string; itemType: string; quantity: number }[];
+    } catch { /* fall through to DB */ }
+  }
+  // DB fallback: aggregate from player_items
+  const sql = getSql();
+  const rows = await sql`
+    SELECT player_name, item_name, item_type, quantity
+    FROM player_items
+    ORDER BY player_name, item_name
+    LIMIT 50000
+  ` as { player_name: string; item_name: string; item_type: string; quantity: number }[];
+  return rows.map(r => ({
+    playerName: r.player_name,
+    itemName: r.item_name,
+    itemType: r.item_type,
+    quantity: r.quantity,
+  }));
 }
 
 export async function invalidateAllCache() {

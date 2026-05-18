@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchAndUpsertInteractions } from "@/lib/services";
+import { fetchAndUpsertInteractions, ensureTables } from "@/lib/services";
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -10,6 +10,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await ensureTables();
     const result = await fetchAndUpsertInteractions();
 
     return NextResponse.json({

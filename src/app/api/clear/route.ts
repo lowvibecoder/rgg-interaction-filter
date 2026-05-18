@@ -14,9 +14,6 @@ export async function POST(request: Request) {
   try {
     const sql = getSql();
 
-    const [{ count: recipientCount }] = await sql`SELECT COUNT(*) as count FROM interaction_recipients` as { count: string }[];
-    const [{ count: interactionCount }] = await sql`SELECT COUNT(*) as count FROM interactions` as { count: string }[];
-
     await sql`DELETE FROM interaction_recipients`;
     await sql`DELETE FROM interactions`;
 
@@ -25,7 +22,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      deleted: { recipients: Number(recipientCount), interactions: Number(interactionCount) },
     });
   } catch (error) {
     console.error("Clear error:", error);

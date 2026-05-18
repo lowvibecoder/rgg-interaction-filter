@@ -23,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_recipients_interaction ON interaction_recipients(
 CREATE INDEX IF NOT EXISTS idx_recipients_name ON interaction_recipients(recipient_name);
 CREATE INDEX IF NOT EXISTS idx_recipients_name_interaction ON interaction_recipients(recipient_name, interaction_id);
 CREATE INDEX IF NOT EXISTS idx_interactions_raw_text_trgm ON interactions USING gin (raw_text gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_interactions_sender_date ON interactions(sender_name, date_added DESC);
 
 CREATE TABLE IF NOT EXISTS game_items (
   name TEXT NOT NULL,

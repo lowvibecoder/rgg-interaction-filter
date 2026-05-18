@@ -72,6 +72,9 @@ export async function ensureTables() {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_recipients_name_interaction ON interaction_recipients(recipient_name, interaction_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_interactions_raw_text_trgm ON interactions USING gin (raw_text gin_trgm_ops)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_interactions_date_added ON interactions(date_added DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_interactions_sender_date ON interactions(sender_name, date_added DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_player_items_item_name ON player_items(item_name)`;
 }
 
 export async function fetchAndUpsertInteractions() {
@@ -154,37 +157,43 @@ const GAME_DATA_PAGES = [
 
 export async function fetchAndUpsertGameData() {
   const sql = getSql();
+
+  const fetchResults = await Promise.allSettled(
+    GAME_DATA_PAGES.map(async (page) => {
+      const res = await fetch(page.url);
+      const html = await res.text();
+      return { key: page.key, items: parseGamePage(html, page.key) };
+    })
+  );
+
   let totalInserted = 0;
   const results: Record<string, number> = {};
 
-  for (const page of GAME_DATA_PAGES) {
-    try {
-      const res = await fetch(page.url);
-      const html = await res.text();
-      const items = parseGamePage(html, page.key);
-
-      let inserted = 0;
-      if (items.length > 0) {
-        const values = items.map((_, i) => {
-          const base = i * 4;
-          return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
-        }).join(", ");
-        const params = items.flatMap((item) => [item.title, item.description || "", item.source, item.icon || ""]);
-        await sql.query(
-          `INSERT INTO game_items (name, description, source, icon)
-           VALUES ${values}
-           ON CONFLICT (name, source) DO UPDATE SET
-             description = EXCLUDED.description,
-             icon = EXCLUDED.icon`,
-          params
-        );
-        inserted = items.length;
-      }
-      results[page.key] = inserted;
-      totalInserted += inserted;
-    } catch {
-      results[page.key] = -1;
+  for (const result of fetchResults) {
+    if (result.status === "rejected") {
+      results[result.reason?.key ?? "unknown"] = -1;
+      continue;
     }
+    const { key, items } = result.value;
+    let inserted = 0;
+    if (items.length > 0) {
+      const values = items.map((_, i) => {
+        const base = i * 4;
+        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
+      }).join(", ");
+      const params = items.flatMap((item) => [item.title, item.description || "", item.source, item.icon || ""]);
+      await sql.query(
+        `INSERT INTO game_items (name, description, source, icon)
+         VALUES ${values}
+         ON CONFLICT (name, source) DO UPDATE SET
+           description = EXCLUDED.description,
+           icon = EXCLUDED.icon`,
+        params
+      );
+      inserted = items.length;
+    }
+    results[key] = inserted;
+    totalInserted += inserted;
   }
 
   if (totalInserted > 0) {
