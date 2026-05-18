@@ -38,14 +38,6 @@ interface PlayerInventoryItem {
   source: string | null;
 }
 
-interface InventoryItemWithTimer {
-  playerName: string;
-  itemName: string;
-  itemType: string;
-  quantity: number;
-  timer: number | null;
-}
-
 interface Props {
   overview: PlayerOverview[];
   allItems: string[];
@@ -83,30 +75,9 @@ function getItemTypeFromMap(itemName: string, gameItemMap: Record<string, string
   return "item";
 }
 
-function extractTimer(description: string, itemName: string): number | null {
-  if (!description) return null;
-  const escaped = itemName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const patterns = [
-    new RegExp(`${escaped}.*?(\\d+)\\s*сек`, "i"),
-    new RegExp(`таймера\\s+${escaped}.*?(\\d+)\\s*сек`, "i"),
-    new RegExp(`${escaped}.*?(\\d+)\\s*мин`, "i"),
-    new RegExp(`таймера\\s+${escaped}.*?(\\d+)\\s*мин`, "i"),
-    new RegExp(`${escaped}\\s*\\((\\d+)\\)`, "i"),
-    new RegExp(`${escaped}\\s+(\\d+)`, "i"),
-    new RegExp(`${escaped}.*?(\\d+)\\s*ход`, "i"),
-  ];
-  for (const re of patterns) {
-    const m = description.match(re);
-    if (m) return parseInt(m[1], 10);
-  }
-  return null;
-}
-
 const ACTIVE_SET = new Set(ACTIVE_PLAYERS);
 
 function ItemLine({ item, description, onCopy }: { item: PlayerInventoryItem; description: string; onCopy: (text: string) => void }) {
-  const timer = item.item_type === "effect" ? extractTimer(description, item.item_name) : null;
-  const displayName = timer !== null ? `${item.item_name} (${timer})` : item.item_name;
   return (
     <Tooltip title={description || ""} arrow placement="right">
       <Typography
@@ -114,7 +85,7 @@ function ItemLine({ item, description, onCopy }: { item: PlayerInventoryItem; de
         onClick={() => onCopy(item.item_name)}
         sx={{ fontSize: "1rem", cursor: "pointer", "&:hover": { color: "primary.main" }, userSelect: "none" }}
       >
-        {displayName}{item.quantity > 1 ? ` x${item.quantity}` : ""}
+        {item.item_name}{item.quantity > 1 ? ` x${item.quantity}` : ""}
       </Typography>
     </Tooltip>
   );
@@ -234,16 +205,8 @@ export default function InventoriesPageClient({
   const filteredOverview = useMemo(() => overview.filter((p) => ACTIVE_SET.has(p.player_name)), [overview]);
   const filteredItems = useMemo(() => filterItems(allItems, localQ, gameItemMap, hideEffects, hideItems, hideSpecialRolls), [allItems, localQ, gameItemMap, hideEffects, hideItems, hideSpecialRolls]);
 
-  const allItemsWithTimers: InventoryItemWithTimer[] = useMemo(() => {
-    return allInventoryItems.map((item) => {
-      const desc = gameItemMap[item.itemName] || "";
-      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
-      return { ...item, timer };
-    });
-  }, [allInventoryItems, gameItemMap]);
-
-  const filteredItemsWithTimers = useMemo(() => {
-    let filtered = allItemsWithTimers;
+  const filteredItemsList = useMemo(() => {
+    let filtered = allInventoryItems;
     if (hideEffects) filtered = filtered.filter((i) => i.itemType !== "effect");
     if (hideItems) filtered = filtered.filter((i) => i.itemType !== "item");
     if (hideSpecialRolls) filtered = filtered.filter((i) => i.itemType !== "special_roll");
@@ -261,13 +224,11 @@ export default function InventoriesPageClient({
       a.itemType.localeCompare(b.itemType) ||
       a.itemName.localeCompare(b.itemName)
     );
-  }, [allItemsWithTimers, hideEffects, hideItems, hideSpecialRolls, localQ, gameItemMap]);
+  }, [allInventoryItems, hideEffects, hideItems, hideSpecialRolls, localQ, gameItemMap]);
 
   const summedItems = useMemo(() => {
-    const map = new Map<string, { itemName: string; itemType: string; totalQuantity: number; players: string[]; timer: number | null }>();
+    const map = new Map<string, { itemName: string; itemType: string; totalQuantity: number; players: string[] }>();
     for (const item of allInventoryItems) {
-      const desc = gameItemMap[item.itemName] || "";
-      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
       const key = `${item.itemName}||${item.itemType}`;
       const existing = map.get(key);
       if (existing) {
@@ -281,7 +242,6 @@ export default function InventoriesPageClient({
           itemType: item.itemType,
           totalQuantity: item.quantity,
           players: [item.playerName],
-          timer,
         });
       }
     }
@@ -351,14 +311,6 @@ export default function InventoriesPageClient({
 
   const [modalPlayer, setModalPlayer] = useState<string | null>(null);
 
-  const selectedItemTimer = useMemo(() => {
-    if (!selectedItem) return null;
-    const desc = gameItemMap[selectedItem];
-    if (!desc) return null;
-    const itemType = players[0]?.item_type ?? allInventoryItems.find((i) => i.itemName === selectedItem)?.itemType;
-    return itemType === "effect" ? extractTimer(desc, selectedItem) : null;
-  }, [selectedItem, gameItemMap, players, allInventoryItems]);
-
   return (
     <Box sx={{ maxWidth: 1400, mx: "auto", p: 2 }}>
       <PlayerInventoryModal player={modalPlayer} allInventoryItems={allInventoryItems} gameItemMap={gameItemMap} onClose={() => setModalPlayer(null)} />
@@ -394,7 +346,7 @@ export default function InventoriesPageClient({
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                 <Typography variant="subtitle1">
-                  Предмет: <strong>{selectedItem}{selectedItemTimer !== null ? ` (${selectedItemTimer})` : ""}</strong>
+                  Предмет: <strong>{selectedItem}</strong>
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   — найдено у {players.length} игроков
@@ -486,7 +438,7 @@ export default function InventoriesPageClient({
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Все предметы ({viewMode === "summed" ? summedItems.length : filteredItemsWithTimers.length})
+                  Все предметы ({viewMode === "summed" ? summedItems.length : filteredItemsList.length})
                 </Typography>
                 <FormGroup row sx={{ "& .MuiFormControlLabel-root": { mr: 1 } }}>
                   <FormControlLabel
@@ -506,7 +458,7 @@ export default function InventoriesPageClient({
                   />
                 </FormGroup>
               </Box>
-              {(viewMode === "summed" ? summedItems.length : filteredItemsWithTimers.length) === 0 ? (
+              {(viewMode === "summed" ? summedItems.length : filteredItemsList.length) === 0 ? (
                 <Typography color="text.secondary">
                   {localQ ? "Ничего не найдено по вашему запросу" : "Введите поисковый запрос или откройте общую таблицу"}
                 </Typography>
@@ -537,7 +489,7 @@ export default function InventoriesPageClient({
                         <TableRow key={`${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
                           <TableCell>
                             <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
-                              <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(item.itemName)}>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
+                              <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(item.itemName)}>{item.itemName}</span>
                             </Tooltip>
                           </TableCell>
                           <TableCell sx={{ width: 70 }}>
@@ -557,12 +509,12 @@ export default function InventoriesPageClient({
                             </Box>
                           </TableCell>
                         </TableRow>
-                      )) : filteredItemsWithTimers.map((item, idx) => (
+                      )) : filteredItemsList.map((item, idx) => (
                         <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
                           <TableCell>{item.playerName}</TableCell>
                           <TableCell>
                             <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
-                              <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(item.itemName)}>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
+                              <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(item.itemName)}>{item.itemName}</span>
                             </Tooltip>
                           </TableCell>
                           <TableCell>
