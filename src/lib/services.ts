@@ -71,10 +71,14 @@ export async function ensureTables() {
   `;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_recipients_name_interaction ON interaction_recipients(recipient_name, interaction_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_interactions_raw_text_trgm ON interactions USING gin (raw_text gin_trgm_ops)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_interactions_date_added ON interactions(date_added DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_interactions_sender_date ON interactions(sender_name, date_added DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_player_items_item_name ON player_items(item_name)`;
+  try {
+    await sql`CREATE INDEX IF NOT EXISTS idx_interactions_raw_text_trgm ON interactions USING gin (raw_text gin_trgm_ops)`;
+  } catch {
+    // pg_trgm extension may not be available — skip trigram index gracefully
+  }
 }
 
 export async function fetchAndUpsertInteractions() {
