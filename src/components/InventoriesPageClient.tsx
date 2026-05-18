@@ -105,7 +105,7 @@ function extractTimer(description: string, itemName: string): number | null {
 const ACTIVE_SET = new Set(ACTIVE_PLAYERS);
 
 function ItemLine({ item, description, onCopy }: { item: PlayerInventoryItem; description: string; onCopy: (text: string) => void }) {
-  const timer = extractTimer(description, item.item_name);
+  const timer = item.item_type === "effect" ? extractTimer(description, item.item_name) : null;
   const displayName = timer !== null ? `${item.item_name} (${timer})` : item.item_name;
   return (
     <Tooltip title={description || ""} arrow placement="right">
@@ -237,7 +237,7 @@ export default function InventoriesPageClient({
   const allItemsWithTimers: InventoryItemWithTimer[] = useMemo(() => {
     return allInventoryItems.map((item) => {
       const desc = gameItemMap[item.itemName] || "";
-      const timer = extractTimer(desc, item.itemName);
+      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
       return { ...item, timer };
     });
   }, [allInventoryItems, gameItemMap]);
@@ -267,7 +267,7 @@ export default function InventoriesPageClient({
     const map = new Map<string, { itemName: string; itemType: string; totalQuantity: number; players: string[]; timer: number | null }>();
     for (const item of allInventoryItems) {
       const desc = gameItemMap[item.itemName] || "";
-      const timer = extractTimer(desc, item.itemName);
+      const timer = item.itemType === "effect" ? extractTimer(desc, item.itemName) : null;
       const key = `${item.itemName}||${item.itemType}`;
       const existing = map.get(key);
       if (existing) {
@@ -356,8 +356,10 @@ export default function InventoriesPageClient({
   const selectedItemTimer = useMemo(() => {
     if (!selectedItem) return null;
     const desc = gameItemMap[selectedItem];
-    return desc ? extractTimer(desc, selectedItem) : null;
-  }, [selectedItem, gameItemMap]);
+    if (!desc) return null;
+    const itemType = players[0]?.item_type ?? allInventoryItems.find((i) => i.itemName === selectedItem)?.itemType;
+    return itemType === "effect" ? extractTimer(desc, selectedItem) : null;
+  }, [selectedItem, gameItemMap, players, allInventoryItems]);
 
   return (
     <Box sx={{ maxWidth: 1400, mx: "auto", p: 2 }}>
