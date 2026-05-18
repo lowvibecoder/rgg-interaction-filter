@@ -97,13 +97,19 @@ function PlayerInventoryModal({ player, allInventoryItems, gameItemMap, onClose 
   gameItemMap: Record<string, string>;
   onClose: () => void;
 }) {
+  const [internalPlayer, setInternalPlayer] = useState<string | null>(player);
+
+  useEffect(() => {
+    setInternalPlayer(player);
+  }, [player]);
+
   const open = player !== null;
 
   const playerItems = useMemo(() => {
-    if (!player) return null;
+    if (!internalPlayer) return null;
     const map = new Map<string, PlayerInventoryItem>();
     for (const item of allInventoryItems) {
-      if (item.playerName !== player) continue;
+      if (item.playerName !== internalPlayer) continue;
       const key = `${item.itemName}||${item.itemType}`;
       const existing = map.get(key);
       if (existing) {
@@ -113,7 +119,7 @@ function PlayerInventoryModal({ player, allInventoryItems, gameItemMap, onClose 
       }
     }
     return [...map.values()].sort((a, b) => a.item_type.localeCompare(b.item_type) || a.item_name.localeCompare(b.item_name));
-  }, [player, allInventoryItems]);
+  }, [internalPlayer, allInventoryItems]);
 
   const effects = useMemo(() => playerItems?.filter((i) => i.item_type === "effect") ?? [], [playerItems]);
   const ordinaryItems = useMemo(() => playerItems?.filter((i) => i.item_type === "item") ?? [], [playerItems]);
@@ -126,7 +132,7 @@ function PlayerInventoryModal({ player, allInventoryItems, gameItemMap, onClose 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ fontWeight: 700 }}>
-        {player ? `Инвентарь ${player}` : "Инвентарь"}
+        {internalPlayer ? `Инвентарь ${internalPlayer}` : "Инвентарь"}
       </DialogTitle>
       <DialogContent dividers sx={{ display: "flex", gap: 2, minHeight: 400 }}>
         <Box sx={{ width: 200, flexShrink: 0, borderRight: 1, borderColor: "divider", pr: 1, display: "flex", flexDirection: "column" }}>
@@ -135,8 +141,8 @@ function PlayerInventoryModal({ player, allInventoryItems, gameItemMap, onClose 
             {ACTIVE_PLAYERS.map((name) => (
               <ListItemButton
                 key={name}
-                selected={name === player}
-                onClick={() => {}}
+                selected={name === internalPlayer}
+                onClick={() => setInternalPlayer(name)}
                 sx={{ borderRadius: 1, py: 0.15 }}
               >
                 <ListItemText
@@ -148,7 +154,7 @@ function PlayerInventoryModal({ player, allInventoryItems, gameItemMap, onClose 
           </List>
         </Box>
         <Box sx={{ flex: 1 }}>
-          {!player ? (
+          {!internalPlayer ? (
             <Typography color="text.secondary">Выберите игрока</Typography>
           ) : (
             <>
