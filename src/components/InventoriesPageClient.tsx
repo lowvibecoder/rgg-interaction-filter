@@ -271,9 +271,7 @@ export default function InventoriesPageClient({
       const key = `${item.itemName}||${item.itemType}`;
       const existing = map.get(key);
       if (existing) {
-        if (item.itemType !== "effect") {
-          existing.totalQuantity += item.quantity;
-        }
+        existing.totalQuantity += item.quantity;
         if (!existing.players.includes(item.playerName)) {
           existing.players.push(item.playerName);
         }
@@ -281,7 +279,7 @@ export default function InventoriesPageClient({
         map.set(key, {
           itemName: item.itemName,
           itemType: item.itemType,
-          totalQuantity: item.itemType === "effect" ? 1 : item.quantity,
+          totalQuantity: item.quantity,
           players: [item.playerName],
           timer,
         });
@@ -408,15 +406,15 @@ export default function InventoriesPageClient({
                 </Typography>
               )}
               {players.length > 0 ? (
-                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600, mt: 0.5 }}>
+                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 800, mt: 0.5 }}>
                   <Table size="small" sx={{ "& td, & th": { px: 1, py: 0.5, fontSize: "1rem" } }}>
                     <TableHead>
                       <TableRow>
                         {viewMode === "summed" ? (
                           <>
                             <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                            <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600, width: 60, whiteSpace: "nowrap" }}>Кол-во</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>Кол-во</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Игроки</TableCell>
                           </>
                         ) : (
@@ -424,7 +422,7 @@ export default function InventoriesPageClient({
                             <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600, width: 60, whiteSpace: "nowrap" }}>Кол-во</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>Кол-во</TableCell>
                           </>
                         )}
                       </TableRow>
@@ -445,8 +443,8 @@ export default function InventoriesPageClient({
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
-                          <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>
-                            {players[0].item_type === "effect" ? players.length : players.reduce((s, p) => s + p.total_quantity, 0)}
+                          <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                            {players.reduce((s, p) => s + p.total_quantity, 0)}
                           </TableCell>
                           <TableCell>
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
@@ -473,7 +471,7 @@ export default function InventoriesPageClient({
                                 sx={{ height: 24, fontSize: "0.85rem" }}
                               />
                             </TableCell>
-                            <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>{p.item_type === "effect" ? 1 : p.total_quantity}</TableCell>
+                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{p.total_quantity}</TableCell>
                           </TableRow>
                         ))
                       )}
@@ -513,23 +511,23 @@ export default function InventoriesPageClient({
                   {localQ ? "Ничего не найдено по вашему запросу" : "Введите поисковый запрос или откройте общую таблицу"}
                 </Typography>
               ) : (
-                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 600 }}>
+                <TableContainer component={Paper} sx={{ bgcolor: "background.paper", maxWidth: 800 }}>
                   <Table size="small" stickyHeader sx={{ "& td, & th": { px: 0.5, py: 0.25, fontSize: "1rem", whiteSpace: "nowrap" } }}>
                     <TableHead>
                       <TableRow>
                         {viewMode === "summed" ? (
                           <>
                             <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                            <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600, width: 50 }}>Кол-во</TableCell>
-                            <TableCell sx={{ fontWeight: 600, maxWidth: 200 }}>Игроки</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>Кол-во</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Игроки</TableCell>
                           </>
                         ) : (
                           <>
-                            <TableCell sx={{ fontWeight: 600, width: 100 }}>Игрок</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Игрок</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Предмет</TableCell>
-                            <TableCell sx={{ fontWeight: 600, width: 70 }}>Тип</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600, width: 60, whiteSpace: "nowrap" }}>Кол-во</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Тип</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>Кол-во</TableCell>
                           </>
                         )}
                       </TableRow>
@@ -550,8 +548,8 @@ export default function InventoriesPageClient({
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
-                          <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>{item.totalQuantity}</TableCell>
-                          <TableCell sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.totalQuantity}</TableCell>
+                          <TableCell sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                               {item.players.map((p) => (
                                 <Chip key={p} label={p} size="small" sx={{ height: 24, fontSize: "1rem" }} />
@@ -561,13 +559,13 @@ export default function InventoriesPageClient({
                         </TableRow>
                       )) : filteredItemsWithTimers.map((item, idx) => (
                         <TableRow key={`${item.playerName}-${item.itemName}-${item.itemType}-${idx}`} sx={{ "&:last-of-type td": { border: 0 } }}>
-                          <TableCell sx={{ width: 100 }}>{item.playerName}</TableCell>
+                          <TableCell>{item.playerName}</TableCell>
                           <TableCell>
                             <Tooltip title={gameItemMap[item.itemName] || ""} arrow placement="right">
                               <span style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(item.itemName)}>{item.itemName}{item.timer !== null ? ` (${item.timer})` : ""}</span>
                             </Tooltip>
                           </TableCell>
-                          <TableCell sx={{ width: 70 }}>
+                          <TableCell>
                             <Chip
                               label={item.itemType === "effect" ? "Эффект" : item.itemType === "item" ? "Предмет" : "Спецролл"}
                               size="small"
@@ -575,7 +573,7 @@ export default function InventoriesPageClient({
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
-                          <TableCell align="right" sx={{ width: 60, whiteSpace: "nowrap" }}>{item.itemType === "effect" ? 1 : item.quantity}</TableCell>
+                          <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.quantity}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
