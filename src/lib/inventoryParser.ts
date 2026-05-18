@@ -24,6 +24,52 @@ export function parseInventoryPage(html: string, playerName: string): ParsedInve
       if (idx !== -1 && idx < sectionEnd) sectionEnd = idx;
     }
     const sectionHtml = html.substring(sectionIdx + section.heading.length, sectionEnd);
+    if (!sectionHtml.includes("MuiListItemText-root")) continue;
+
+    const sectionItems: { name: string; quantity: number }[] = [];
+    let pos = 0;
+    while (pos < sectionHtml.length) {
+      const textRoot = sectionHtml.indexOf("MuiListItemText-root", pos);
+      if (textRoot === -1) break;
+
+      const itemEnd = sectionHtml.indexOf("</li>", textRoot);
+      if (itemEnd === -1) break;
+
+      const itemBlock = sectionHtml.substring(textRoot, itemEnd);
+
+      const spanStart = itemBlock.indexOf("<span>");
+      if (spanStart !== -1) {
+        const spanEnd = itemBlock.indexOf("</span>", spanStart);
+        if (spanEnd !== -1) {
+          let rawName = itemBlock.substring(spanStart + 6, spanEnd);
+          rawName = rawName.replace(/<!--[\s\S]*?-->/g, "").replace(/&nbsp;/g, " ").replace(/&#?\w+;/g, " ").trim();
+          if (rawName && !rawName.startsWith("$") && rawName.length > 0) {
+            sectionItems.push({ name: rawName, quantity: 1 });
+          }
+        }
+      }
+
+      pos = itemEnd + 5;
+    }
+
+    const merged = new Map<string, { name: string; quantity: number }>();
+    for (const item of sectionItems) {
+      const existing = merged.get(item.name);
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        merged.set(item.name, { name: item.name, quantity: item.quantity });
+      }
+    }
+
+    for (const [, item] of merged) {
+      results.push({ playerName, itemName: item.name, itemType: section.type, quantity: item.quantity });
+    }
+  }
+
+  return results;
+}
+    const sectionHtml = html.substring(sectionIdx + section.heading.length, sectionEnd);
     // Skip if no items found (check for MuiListItemText-root instead of "Пусто"
     // which can appear in item names like "Пустой кубик")
     if (!sectionHtml.includes("MuiListItemText-root")) continue;
@@ -47,9 +93,17 @@ export function parseInventoryPage(html: string, playerName: string): ParsedInve
           rawName = rawName.replace(/<!--[\s\S]*?-->/g, "").replace(/&nbsp;/g, " ").replace(/&#?\w+;/g, " ").trim();
           if (rawName && !rawName.startsWith("$") && rawName.length > 0) {
             let quantity = 1;
-            const qtyMatch = itemBlock.match(/MuiListItemText-secondary[^>]*>[\s\S]*?break-all">(\d+)<\/div/);
-            if (qtyMatch) {
-              quantity = parseInt(qtyMatch[1], 10);
+            const secIdx = itemBlock.indexOf("MuiListItemText-secondary");
+            if (secIdx !== -1) {
+              const afterSec = itemBlock.substring(secIdx);
+              const qtyMatch = afterSec.match(/break-all">(\d+)<\/div/);
+              if (qtyMatch) {
+                quantity = parseInt(qtyMatch[1], 10);
+              }
+            }
+            sectionItems.push({ name: rawName, quantity });
+          }
+              }
             }
             sectionItems.push({ name: rawName, quantity });
           }
