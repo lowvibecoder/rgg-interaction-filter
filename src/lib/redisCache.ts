@@ -2,6 +2,7 @@ import { getRedis } from "./redis";
 import {
   getGameItems, getInteractionsLastUpdated, getDateRange,
   getSenders, getRecipients, getActionTypes,
+  getSendersAll, getRecipientsAll, getActionTypesAll,
 } from "./db";
 import {
   getUniqueItemNames, getPlayersByItem, getPlayerOverviews,
@@ -40,11 +41,11 @@ export function getCachedPlayerOverviews() {
 }
 
 export function getCachedInventoryLastUpdated() {
-  return getInventoryLastUpdated();
+  return cached("cache:inventory-last-updated", () => getInventoryLastUpdated());
 }
 
 export function getCachedPlayerOverviewLastUpdated() {
-  return getPlayerOverviewLastUpdated();
+  return cached("cache:player-overview-last-updated", () => getPlayerOverviewLastUpdated());
 }
 
 export function getCachedInteractionsLastUpdated() {
@@ -70,10 +71,22 @@ export function getCachedRecipients(filters?: {
 }
 
 export function getCachedActionTypes(filters?: {
-  dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; note?: string; activeOnly?: boolean;
+  dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; activeOnly?: boolean;
 }) {
   const key = `cache:action-types:${JSON.stringify(filters ?? {})}`;
   return cached(key, () => getActionTypes(filters));
+}
+
+export function getCachedSendersAll() {
+  return cached("cache:senders:all", () => getSendersAll(), TTL_LONG);
+}
+
+export function getCachedRecipientsAll() {
+  return cached("cache:recipients:all", () => getRecipientsAll(), TTL_LONG);
+}
+
+export function getCachedActionTypesAll() {
+  return cached("cache:action-types:all", () => getActionTypesAll(), TTL_LONG);
 }
 
 export function getCachedPlayersByInventoryItem(itemName: string) {

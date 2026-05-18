@@ -9,7 +9,7 @@ import {
   batchUpsertAllRecipients,
   getSql,
 } from "./db";
-import { invalidateInteractionCache, refreshInteractionCache } from "./interactionCache";
+import { invalidateInteractionCache } from "./interactionCache";
 import { setAllInventoryItems, setPlayerOverviews } from "./inventoryCache";
 
 export async function ensureTables() {
@@ -71,6 +71,7 @@ export async function ensureTables() {
   `;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_recipients_name_interaction ON interaction_recipients(recipient_name, interaction_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_interactions_raw_text_trgm ON interactions USING gin (raw_text gin_trgm_ops)`;
 }
 
 export async function fetchAndUpsertInteractions() {
@@ -186,7 +187,11 @@ export async function fetchAndUpsertGameData() {
     }
   }
 
-  if (totalInserted > 0) revalidateTag("game-items", "max");
+  if (totalInserted > 0) {
+    revalidateTag("game-items", "max");
+    const r = (await import("@/lib/redis")).getRedis();
+    if (r) await r.set("cache:game-data-last-updated", Date.now(), { ex: 86400 * 7 });
+  }
 
   return { success: true, total: totalInserted, results };
 }

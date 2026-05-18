@@ -1,5 +1,4 @@
 import { neon } from "@neondatabase/serverless";
-import { unstable_cache } from "next/cache";
 import { ACTIVE_PLAYERS } from "./players";
 
 let _sql: ReturnType<typeof neon> | null = null;
@@ -71,7 +70,7 @@ export async function batchUpsertAllRecipients(
 }
 
 export async function getSenders(filters?: {
-  dateFrom?: string; dateTo?: string; recipient?: string; action?: string; note?: string; activeOnly?: boolean;
+  dateFrom?: string; dateTo?: string; recipient?: string; action?: string; activeOnly?: boolean;
 }) {
   const sql = getSql();
   const conditions: string[] = [];
@@ -87,7 +86,6 @@ export async function getSenders(filters?: {
   }
   if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
   if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
-  if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
   if (filters?.activeOnly) {
     const ph = ACTIVE_PLAYERS.map(() => `$${pi++}`).join(",");
     conditions.push(`i.sender_name IN (${ph})`);
@@ -102,8 +100,15 @@ export async function getSenders(filters?: {
   return rows;
 }
 
+export async function getSendersAll(): Promise<{ sender_name: string }[]> {
+  const sql = getSql();
+  return (await sql`
+    SELECT DISTINCT sender_name FROM interactions ORDER BY sender_name
+  `) as { sender_name: string }[];
+}
+
 export async function getRecipients(filters?: {
-  dateFrom?: string; dateTo?: string; sender?: string; action?: string; note?: string; activeOnly?: boolean;
+  dateFrom?: string; dateTo?: string; sender?: string; action?: string; activeOnly?: boolean;
 }) {
   const sql = getSql();
   const conditions: string[] = [];
@@ -113,7 +118,6 @@ export async function getRecipients(filters?: {
   if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}::bigint`); params.push(String(dateToEndTimestamp(filters.dateTo))); }
   if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
   if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
-  if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
   if (filters?.activeOnly) {
     const ph = ACTIVE_PLAYERS.map(() => `$${pi++}`).join(",");
     conditions.push(`i.sender_name IN (${ph})`);
@@ -129,8 +133,17 @@ export async function getRecipients(filters?: {
   return rows;
 }
 
+export async function getRecipientsAll(): Promise<{ recipient_name: string }[]> {
+  const sql = getSql();
+  return (await sql`
+    SELECT DISTINCT ir.recipient_name FROM interactions i
+    JOIN interaction_recipients ir ON ir.interaction_id = i.id
+    ORDER BY ir.recipient_name
+  `) as { recipient_name: string }[];
+}
+
 export async function getActionTypes(filters?: {
-  dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; note?: string; activeOnly?: boolean;
+  dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; activeOnly?: boolean;
 }) {
   const sql = getSql();
   const conditions: string[] = [];
@@ -140,7 +153,6 @@ export async function getActionTypes(filters?: {
   if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}::bigint`); params.push(String(dateToEndTimestamp(filters.dateTo))); }
   if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
   if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
-  if (filters?.note) { conditions.push(`i.raw_text ILIKE $${pi++}`); params.push(`%${filters.note}%`); }
   if (filters?.activeOnly) {
     const ph = ACTIVE_PLAYERS.map(() => `$${pi++}`).join(",");
     conditions.push(`i.sender_name IN (${ph})`);
@@ -153,6 +165,13 @@ export async function getActionTypes(filters?: {
     params
   )) as { action_type: string }[];
   return rows;
+}
+
+export async function getActionTypesAll(): Promise<{ action_type: string }[]> {
+  const sql = getSql();
+  return (await sql`
+    SELECT DISTINCT action_type FROM interactions ORDER BY action_type
+  `) as { action_type: string }[];
 }
 
 export async function getDateRange() {
@@ -242,9 +261,13 @@ export async function getInteractions(query: InteractionQuery) {
   const pageSize = query.pageSize || 50;
   const offset = (page - 1) * pageSize;
 
+  const selectCols = query.note
+    ? `i.id, i.date_added, i.sender_name, i.sender_login, i.action_type, i.note, i.raw_text, i.fetched_at`
+    : `i.id, i.date_added, i.sender_name, i.sender_login, i.action_type, i.note, i.fetched_at`;
+
   const queryStr = `
-    SELECT DISTINCT i.id, i.date_added, i.sender_name, i.sender_login,
-           i.action_type, i.note, i.raw_text, i.fetched_at
+    SELECT DISTINCT ${selectCols},
+           COUNT(*) OVER() as total
     FROM interactions i
     ${query.recipient ? "JOIN interaction_recipients ir ON ir.interaction_id = i.id" : ""}
     ${where}
@@ -254,17 +277,9 @@ export async function getInteractions(query: InteractionQuery) {
   const rows = (await sql.query(
     queryStr,
     [...params, pageSize, offset]
-  )) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; raw_text: string; fetched_at: string }[];
+  )) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; raw_text?: string; fetched_at: string; total: string }[];
 
-  const countQueryStr = `
-    SELECT COUNT(DISTINCT i.id) as total
-    FROM interactions i
-    ${query.recipient ? "JOIN interaction_recipients ir ON ir.interaction_id = i.id" : ""}
-    ${where}
-  `;
-  const countResult = (await sql.query(countQueryStr, params)) as { total: string }[];
-
-  const total = Number(countResult[0]?.total || 0);
+  const total = Number(rows[0]?.total || 0);
 
   const ids = rows.map((r) => r.id);
   const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
@@ -452,76 +467,3 @@ export async function batchUpsertPlayerOverviews(
   );
 }
 
-// ── Cached wrappers for server components ──
-
-export const getCachedGameItems = unstable_cache(
-  async () => getGameItems(),
-  ["game-items"],
-  { revalidate: false, tags: ["game-items"] }
-);
-
-export const getCachedInventoryItems = unstable_cache(
-  async (searchTerm?: string) => getInventoryItems(searchTerm),
-  ["inventory-items"],
-  { revalidate: false, tags: ["inventory-items"] }
-);
-
-export const getCachedPlayerOverviews = unstable_cache(
-  async () => getPlayerOverviews(),
-  ["player-overviews"],
-  { revalidate: false, tags: ["player-overviews"] }
-);
-
-export const getCachedSenders = unstable_cache(
-  async (filters?: {
-    dateFrom?: string; dateTo?: string; recipient?: string; action?: string; note?: string; activeOnly?: boolean;
-  }) => getSenders(filters),
-  ["senders"],
-  { revalidate: false, tags: ["interactions"] }
-);
-
-export const getCachedRecipients = unstable_cache(
-  async (filters?: {
-    dateFrom?: string; dateTo?: string; sender?: string; action?: string; note?: string; activeOnly?: boolean;
-  }) => getRecipients(filters),
-  ["recipients"],
-  { revalidate: false, tags: ["interactions"] }
-);
-
-export const getCachedActionTypes = unstable_cache(
-  async (filters?: {
-    dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; note?: string; activeOnly?: boolean;
-  }) => getActionTypes(filters),
-  ["action-types"],
-  { revalidate: false, tags: ["interactions"] }
-);
-
-export const getCachedDateRange = unstable_cache(
-  async () => getDateRange(),
-  ["date-range"],
-  { revalidate: false, tags: ["interactions"] }
-);
-
-export const getCachedInteractionsLastUpdated = unstable_cache(
-  async () => getInteractionsLastUpdated(),
-  ["interactions-last-updated"],
-  { revalidate: false, tags: ["interactions"] }
-);
-
-export const getCachedInventoryLastUpdated = unstable_cache(
-  async () => getInventoryLastUpdated(),
-  ["inventory-last-updated"],
-  { revalidate: false, tags: ["inventory-items"] }
-);
-
-export const getCachedPlayerOverviewLastUpdated = unstable_cache(
-  async () => getPlayerOverviewLastUpdated(),
-  ["player-overview-last-updated"],
-  { revalidate: false, tags: ["player-overviews"] }
-);
-
-export const getCachedPlayersByInventoryItem = unstable_cache(
-  async (itemName: string) => getPlayersByInventoryItem(itemName),
-  ["players-by-item"],
-  { revalidate: false, tags: ["inventory-items"] }
-);

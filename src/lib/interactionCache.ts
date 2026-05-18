@@ -78,7 +78,7 @@ export async function setInteractionHash(hash: string) {
   if (r) await r.set(HASH_KEY, hash, { ex: 86400 * 7 });
 }
 
-// Called by healthz after parsing new interactions — merges only new rows into cache
+// Called after parsing new interactions — merges only new rows into cache
 export async function refreshInteractionCache() {
   const r = getRedis();
   if (!r) return;

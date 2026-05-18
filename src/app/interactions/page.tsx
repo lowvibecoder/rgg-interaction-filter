@@ -4,13 +4,14 @@ import InteractionsTable from "@/components/InteractionsTable";
 import LiveTimestamp from "@/components/LiveTimestamp";
 import { getCachedInteractionsDelta } from "@/lib/interactionCache";
 import {
-  getCachedSenders,
-  getCachedRecipients,
-  getCachedActionTypes,
+  getCachedSendersAll,
+  getCachedRecipientsAll,
+  getCachedActionTypesAll,
   getCachedDateRange,
   getCachedGameItems,
   getCachedInteractionsLastUpdated,
 } from "@/lib/redisCache";
+import { ACTIVE_PLAYERS } from "@/lib/players";
 
 interface PageProps {
   searchParams: Promise<{
@@ -41,11 +42,11 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
     activeOnly: params.activeOnly === undefined ? true : params.activeOnly === "true",
   };
 
-  const [senders, recipients, actionTypes, interactionData, dateRange, gameItems, lastUpdated] =
+  const [allSenders, allRecipients, allActionTypes, interactionData, dateRange, gameItems, lastUpdated] =
     await Promise.all([
-      getCachedSenders({ ...baseFilters, recipient: params.recipient, action: params.action }),
-      getCachedRecipients({ ...baseFilters, sender: params.sender, action: params.action }),
-      getCachedActionTypes({ ...baseFilters, sender: params.sender, recipient: params.recipient }),
+      getCachedSendersAll(),
+      getCachedRecipientsAll(),
+      getCachedActionTypesAll(),
       getCachedInteractionsDelta({
         ...baseFilters,
         sender: params.sender,
@@ -58,6 +59,27 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
       getCachedGameItems(),
       getCachedInteractionsLastUpdated(),
     ]);
+
+  // Filter dropdown options in-memory from unfiltered lists
+  const activeSet = new Set(ACTIVE_PLAYERS);
+  const senderSet = new Set(interactionData.rows.map((r) => r.sender_name));
+  const recipientSet = new Set(interactionData.rows.flatMap((r) => r.recipients.map((rec) => rec.recipient_name)));
+  const actionSet = new Set(interactionData.rows.map((r) => r.action_type));
+
+  const senders = allSenders
+    .filter((s) => {
+      if (baseFilters.activeOnly && !activeSet.has(s.sender_name)) return false;
+      return senderSet.has(s.sender_name);
+    })
+    .map((s) => s.sender_name);
+
+  const recipients = allRecipients
+    .filter((r) => recipientSet.has(r.recipient_name))
+    .map((r) => r.recipient_name);
+
+  const actionTypes = allActionTypes
+    .filter((a) => actionSet.has(a.action_type))
+    .map((a) => a.action_type);
 
   const gameItemMap: Record<string, string> = {};
   for (const item of gameItems) {
@@ -81,9 +103,9 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
         <LiveTimestamp date={toIsoString(lastUpdated)} label="обновлено" />
       </Typography>
       <InteractionsFilters
-        senders={senders.map((s) => s.sender_name)}
-        recipients={recipients.map((r) => r.recipient_name)}
-        actionTypes={actionTypes.map((a) => a.action_type)}
+        senders={senders}
+        recipients={recipients}
+        actionTypes={actionTypes}
         defaultMinDate={toDateStr(dateRange.minDate)}
         defaultMaxDate={toDateStr(dateRange.maxDate)}
       />
