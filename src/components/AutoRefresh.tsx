@@ -11,14 +11,24 @@ export default function AutoRefresh() {
   useEffect(() => {
     const last = localStorage.getItem("touch-all-ts");
     const now = Date.now();
-    if (last && now - Number(last) < COOLDOWN_MS) return;
+    if (last && now - Number(last) < COOLDOWN_MS) {
+      console.log("[AutoRefresh] skipped, cooldown active");
+      return;
+    }
 
+    console.log("[AutoRefresh] calling touch-all...");
     fetch("/api/touch-all")
       .then((r) => r.json())
       .then((data) => {
-        if (data.touched?.length > 0) router.refresh();
+        console.log("[AutoRefresh] touch-all response:", data);
+        if (data.touched?.length > 0) {
+          console.log("[AutoRefresh] refreshing page, touched:", data.touched);
+          router.refresh();
+        } else {
+          console.log("[AutoRefresh] nothing to update");
+        }
       })
-      .catch(() => {});
+      .catch((e) => console.error("[AutoRefresh] fetch failed:", e));
     localStorage.setItem("touch-all-ts", String(now));
   }, [router]);
 

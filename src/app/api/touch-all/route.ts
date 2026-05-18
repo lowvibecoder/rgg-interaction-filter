@@ -24,6 +24,12 @@ export async function GET() {
         getPlayerOverviewLastUpdated(),
       ]);
 
+      console.log("[touch-all] last updated:", {
+        interactions: intLast?.toISOString(),
+        inventory: invLast?.toISOString(),
+        overview: overviewLast?.toISOString(),
+      });
+
       const r = getRedis();
       let gameLast: Date | null = null;
       if (r) {
@@ -36,7 +42,10 @@ export async function GET() {
       if (!invLast || now - invLast.getTime() > threshold) tasks.push("inventories");
       if (!overviewLast || now - overviewLast.getTime() > threshold) tasks.push("overview");
       if (!gameLast || now - gameLast.getTime() > threshold) tasks.push("game-data");
-    } catch {
+
+      console.log("[touch-all] tasks to run:", tasks);
+    } catch (e) {
+      console.error("[touch-all] error checking timestamps:", e);
       tasks.push("interactions", "inventories", "overview", "game-data");
     }
 
@@ -45,6 +54,7 @@ export async function GET() {
     await Promise.all(
       tasks.map(async (task) => {
         try {
+          console.log("[touch-all] starting task:", task);
           if (task === "interactions") {
             results.interactions = await fetchAndUpsertInteractions();
           } else if (task === "inventories") {
@@ -54,7 +64,9 @@ export async function GET() {
           } else if (task === "game-data") {
             results["game-data"] = await fetchAndUpsertGameData();
           }
+          console.log("[touch-all] task done:", task, results[task]);
         } catch (e: unknown) {
+          console.error("[touch-all] task error:", task, e);
           results[task] = { error: String(e) };
         }
       })
