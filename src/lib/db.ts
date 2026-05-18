@@ -34,7 +34,7 @@ export async function batchUpsertInteractions(
   const sql = getSql();
   if (interactions.length === 0) return { inserted: 0, updated: 0 };
 
-  const fields = 8;
+  const fields = 7;
   const values = interactions.map((_, i) => {
     const base = i * fields;
     return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, NOW())`;
