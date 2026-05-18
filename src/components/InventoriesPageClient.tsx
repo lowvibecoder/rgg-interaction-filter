@@ -218,7 +218,7 @@ export default function InventoriesPageClient({
 
   const urlQ = searchParams.get("q");
   const panel = searchParams.get("panel") ?? ssrPanel;
-  const viewMode = searchParams.get("view") ?? "items";
+  const viewMode = searchParams.get("view") ?? "summed";
   const hideEffects = searchParams.get("hideEffects") !== "false";
   const hideItems = searchParams.get("hideItems") === "true";
   const hideSpecialRolls = searchParams.get("hideSpecialRolls") !== "false";
@@ -344,7 +344,7 @@ export default function InventoriesPageClient({
     setLocalQ("");
     const params = new URLSearchParams();
     params.set("panel", "open");
-    params.set("view", "items");
+    params.set("view", "summed");
     params.set("hideEffects", "true");
     params.set("hideItems", "false");
     params.set("hideSpecialRolls", "true");
@@ -380,8 +380,8 @@ export default function InventoriesPageClient({
           size="small"
           sx={{ "& .MuiToggleButton-root": { fontSize: "0.9rem", px: 1.5 } }}
         >
-          <ToggleButton value="items">По игрокам</ToggleButton>
           <ToggleButton value="summed">Сумма</ToggleButton>
+          <ToggleButton value="items">По игрокам</ToggleButton>
         </ToggleButtonGroup>
         <Button variant="outlined" size="small" onClick={resetFilters}>
           Сбросить
