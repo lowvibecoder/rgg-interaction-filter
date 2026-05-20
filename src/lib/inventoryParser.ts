@@ -1,4 +1,4 @@
-export interface ParsedInventoryItem {
+interface ParsedInventoryItem {
   playerName: string;
   itemName: string;
   itemType: "effect" | "item" | "special_roll";

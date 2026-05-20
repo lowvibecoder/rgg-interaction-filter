@@ -1,4 +1,4 @@
-export interface PlayerOverview {
+interface PlayerOverview {
   playerName: string;
   coins: number;
   tears: number;

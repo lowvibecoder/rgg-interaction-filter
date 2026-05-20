@@ -1,9 +1,9 @@
 import { getSql, getInteractions } from "./db";
 import { getRedis } from "./redis";
 import { ACTIVE_PLAYERS } from "./players";
+import { dateFromStr, dateToEndTimestamp } from "./dateUtils";
 
 const CACHE_KEY = "interactions:all";
-const HASH_KEY = "interactions:hash";
 const LAST_SYNC_KEY = "interactions:lastSyncTs";
 
 interface CachedInteraction {
@@ -29,16 +29,28 @@ interface InteractionQuery {
   pageSize?: number;
 }
 
-const TZ_HOURS = process.env.TZ_OFFSET ? Number(process.env.TZ_OFFSET) : -new Date().getTimezoneOffset() / 60;
-const OFFSET = TZ_HOURS * 60 * 60 * 1000;
+type RecipientRow = { interaction_id: string; recipient_name: string; recipient_login: string };
 
-function dateFromStr(s: string): number {
-  const [y, m, d] = s.split("-").map(Number);
-  return Date.UTC(y, m - 1, d) + OFFSET;
-}
-function dateToEndTimestamp(s: string): number {
-  const [y, m, d] = s.split("-").map(Number);
-  return Date.UTC(y, m - 1, d + 1) + OFFSET - 1;
+async function fetchRecipientsBatch(sql: ReturnType<typeof getSql>, ids: string[]): Promise<Record<string, { recipient_name: string; recipient_login: string }[]>> {
+  const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
+  if (ids.length === 0) return recipientsMap;
+  const batchSize = 500;
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const chunk = ids.slice(i, i + batchSize);
+    const placeholders = chunk.map((_, j) => `$${j + 1}`).join(",");
+    const recipientRows = await sql.query(
+      `SELECT interaction_id, recipient_name, recipient_login FROM interaction_recipients WHERE interaction_id IN (${placeholders})`,
+      chunk
+    ) as RecipientRow[];
+    for (const row of recipientRows) {
+      if (!recipientsMap[row.interaction_id]) recipientsMap[row.interaction_id] = [];
+      recipientsMap[row.interaction_id].push({
+        recipient_name: row.recipient_name,
+        recipient_login: row.recipient_login,
+      });
+    }
+  }
+  return recipientsMap;
 }
 
 export async function getCachedInteractionsDelta(query: InteractionQuery): Promise<{
@@ -74,76 +86,10 @@ export async function getCachedInteractionsDelta(query: InteractionQuery): Promi
   return applyFiltersAndPagination(all, query);
 }
 
-export async function setInteractionHash(hash: string) {
-  const r = getRedis();
-  if (r) await r.set(HASH_KEY, hash, { ex: 86400 * 7 });
-}
-
-// Called after parsing new interactions — merges only new rows into cache
-export async function refreshInteractionCache() {
-  const r = getRedis();
-  if (!r) return;
-
-  const sql = getSql();
-  const lastSync = await r.get<number>(LAST_SYNC_KEY) ?? 0;
-
-  // Only fetch rows newer than last sync (raw_text excluded — only needed for DB-level ILIKE filtering)
-  const newRows = await sql.query(
-    `SELECT id, date_added, sender_name, sender_login, action_type, note, fetched_at
-     FROM interactions WHERE date_added > $1::bigint ORDER BY date_added DESC`,
-    [String(lastSync)]
-  ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; fetched_at: string }[];
-
-  if (newRows.length === 0) return;
-
-  // Fetch recipients for new interactions
-  const newIds = newRows.map((r) => r.id);
-  const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
-  if (newIds.length > 0) {
-    const batchSize = 500;
-    for (let i = 0; i < newIds.length; i += batchSize) {
-      const chunk = newIds.slice(i, i + batchSize);
-      const placeholders = chunk.map((_, j) => `$${j + 1}`).join(",");
-      const recipientRows = await sql.query(
-        `SELECT interaction_id, recipient_name, recipient_login FROM interaction_recipients WHERE interaction_id IN (${placeholders})`,
-        chunk
-      ) as { interaction_id: string; recipient_name: string; recipient_login: string }[];
-      for (const row of recipientRows) {
-        if (!recipientsMap[row.interaction_id]) recipientsMap[row.interaction_id] = [];
-        recipientsMap[row.interaction_id].push({
-          recipient_name: row.recipient_name,
-          recipient_login: row.recipient_login,
-        });
-      }
-    }
-  }
-
-  // Merge into existing cache
-  const cachedJson = await r.get<string>(CACHE_KEY);
-  const cached: CachedInteraction[] = cachedJson ? JSON.parse(cachedJson) : [];
-  const existingIds = new Set(cached.map((c) => c.id));
-
-  for (const row of newRows) {
-    if (!existingIds.has(row.id)) {
-      cached.push({
-        ...row,
-        recipients: recipientsMap[row.id] || [],
-      });
-    }
-  }
-
-  cached.sort((a, b) => b.date_added - a.date_added);
-  await r.set(CACHE_KEY, JSON.stringify(cached), { ex: 86400 });
-  // Use max date_added from fetched rows, NOT wall clock time
-  const maxDateAdded = Math.max(...newRows.map((r) => r.date_added));
-  await r.set(LAST_SYNC_KEY, maxDateAdded);
-}
-
 export async function invalidateInteractionCache() {
   const r = getRedis();
   if (r) {
     await r.del(CACHE_KEY);
-    await r.del(HASH_KEY);
     await r.del(LAST_SYNC_KEY);
   }
 }
@@ -176,26 +122,7 @@ async function fallbackFetch(): Promise<CachedInteraction[]> {
   ) as { id: string; date_added: number; sender_name: string; sender_login: string; action_type: string; note: string; fetched_at: string }[];
 
   const ids = rows.map((r) => r.id);
-  const recipientsMap: Record<string, { recipient_name: string; recipient_login: string }[]> = {};
-
-  if (ids.length > 0) {
-    const batchSize = 500;
-    for (let i = 0; i < ids.length; i += batchSize) {
-      const chunk = ids.slice(i, i + batchSize);
-      const placeholders = chunk.map((_, j) => `$${j + 1}`).join(",");
-      const recipientRows = await sql.query(
-        `SELECT interaction_id, recipient_name, recipient_login FROM interaction_recipients WHERE interaction_id IN (${placeholders})`,
-        chunk
-      ) as { interaction_id: string; recipient_name: string; recipient_login: string }[];
-      for (const row of recipientRows) {
-        if (!recipientsMap[row.interaction_id]) recipientsMap[row.interaction_id] = [];
-        recipientsMap[row.interaction_id].push({
-          recipient_name: row.recipient_name,
-          recipient_login: row.recipient_login,
-        });
-      }
-    }
-  }
+  const recipientsMap = await fetchRecipientsBatch(sql, ids);
 
   const result: CachedInteraction[] = rows.map((r) => ({
     ...r,
@@ -234,11 +161,6 @@ function applyFiltersAndPagination(
   }
   if (query.action) {
     filtered = filtered.filter((r) => r.action_type === query.action);
-  }
-  if (query.note) {
-    // Note filter requires raw_text (not in cache for bandwidth savings).
-    // Caller should fall back to DB query when note filter is active.
-    // Here we skip this filter — results will be unfiltered by note.
   }
   if (query.activeOnly) {
     const activeSet = new Set(ACTIVE_PLAYERS);

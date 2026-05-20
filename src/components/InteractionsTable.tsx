@@ -110,9 +110,7 @@ export default function InteractionsTable({ rows, total, page, totalPages, gameI
             variant="body2"
             sx={{ width: 70, flexShrink: 0, whiteSpace: "nowrap", color: "text.secondary", lineHeight: 1.3, fontSize: "1rem" }}
           >
-            {dayjs(Number(row.date_added)).format("DD.MM")}
-            <br />
-            {dayjs(Number(row.date_added)).format("HH:mm")}
+            {(() => { const d = dayjs(Number(row.date_added)); return <>{d.format("DD.MM")}<br />{d.format("HH:mm")}</>; })()}
           </Typography>
           <Typography variant="body2" sx={{ width: 140, flexShrink: 0, fontSize: "1rem" }}>
             {row.sender_name}

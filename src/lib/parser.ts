@@ -22,7 +22,7 @@ function cleanRscJson(raw: string): string {
   return s;
 }
 
-export function parseRscPayload(html: string): RggInteraction[] {
+function parseRscPayload(html: string): RggInteraction[] {
   // Try to find interactions marker directly in raw HTML
   const marker = '\\"interactions\\":[';
   const startIdx = html.lastIndexOf(marker);

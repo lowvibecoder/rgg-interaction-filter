@@ -93,10 +93,3 @@ export async function getCachedAllInventoryItems() {
     quantity: r.quantity,
   }));
 }
-
-export async function invalidateAllCache() {
-  const r = getRedis();
-  if (!r) return;
-  const keys = await r.keys("cache:*");
-  if (keys.length > 0) await r.del(...keys);
-}

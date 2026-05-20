@@ -4,7 +4,7 @@ const INV_ALL_KEY = "inv:all";
 const INV_OVERVIEW_KEY = "inv:overview";
 const INV_META_KEY = "inv:meta";
 
-export interface InventoryItem {
+interface InventoryItem {
   playerName: string;
   itemName: string;
   itemType: string;
@@ -20,7 +20,7 @@ export interface PlayerOverview {
   special_rolls: number;
 }
 
-export interface InventoryMeta {
+interface InventoryMeta {
   updatedAt: number;
 }
 
@@ -139,12 +139,4 @@ export async function getInventoryLastUpdated(): Promise<Date | null> {
 
 export async function getPlayerOverviewLastUpdated(): Promise<Date | null> {
   return getInventoryLastUpdated();
-}
-
-// ── Invalidate ──
-
-export async function invalidateInventoryCache() {
-  const r = getRedis();
-  if (!r) return;
-  await r.del(INV_ALL_KEY, INV_OVERVIEW_KEY, INV_META_KEY);
 }

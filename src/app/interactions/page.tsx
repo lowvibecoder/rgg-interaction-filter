@@ -12,6 +12,7 @@ import {
   getCachedInteractionsLastUpdated,
 } from "@/lib/redisCache";
 import { ACTIVE_PLAYERS } from "@/lib/players";
+import { buildGameItemMap } from "@/lib/buildGameItemMap";
 
 interface PageProps {
   searchParams: Promise<{
@@ -81,10 +82,7 @@ export default async function InteractionsPage({ searchParams }: PageProps) {
     .filter((a) => actionSet.has(a.action_type))
     .map((a) => a.action_type);
 
-  const gameItemMap: Record<string, string> = {};
-  for (const item of gameItems) {
-    gameItemMap[item.name] = item.description;
-  }
+  const gameItemMap = buildGameItemMap(gameItems);
 
   function toDateStr(d: Date | string | null | undefined): string | null {
     if (!d) return null;

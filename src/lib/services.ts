@@ -101,7 +101,7 @@ export async function fetchAndUpsertInteractions() {
     await invalidateInteractionCache();
   }
 
-  return { success: true, count: parsed.length, parsed: parsed.length };
+  return { success: true, count: parsed.length };
 }
 
 export async function fetchAndUpsertInventories() {

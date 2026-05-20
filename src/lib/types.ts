@@ -49,21 +49,15 @@ export interface InteractionRow {
   fetched_at: string;
 }
 
-export interface RecipientRow {
-  interaction_id: string;
-  recipient_name: string;
-  recipient_login: string;
-}
-
-export interface InteractionsQuery {
-  dateFrom?: string;
-  dateTo?: string;
-  sender?: string;
-  recipient?: string;
-  action?: string;
-  note?: string;
-  page?: number;
-  pageSize?: number;
+export interface InteractionRow {
+  id: string;
+  date_added: number;
+  sender_name: string;
+  sender_login: string;
+  action_type: string;
+  note: string;
+  raw_text?: string;
+  fetched_at: string;
 }
 
 export interface ParsedInteractionWithRecipients extends InteractionRow {

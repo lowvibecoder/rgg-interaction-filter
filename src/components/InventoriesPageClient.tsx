@@ -15,15 +15,8 @@ import InventorySearch from "./InventorySearch";
 import InventoryFilter from "./InventoryFilter";
 import LiveTimestamp from "./LiveTimestamp";
 import { ACTIVE_PLAYERS } from "@/lib/players";
-
-interface PlayerOverview {
-  player_name: string;
-  coins: number;
-  tears: number;
-  effects: number;
-  items: number;
-  special_rolls: number;
-}
+import { getItemTypeLabel, getItemTypeColor } from "@/lib/itemTypeLabel";
+import type { PlayerOverview } from "@/lib/inventoryCache";
 
 interface PlayerResult {
   player_name: string;
@@ -395,9 +388,9 @@ export default function InventoriesPageClient({
                           </TableCell>
                           <TableCell>
                             <Chip
-                              label={players[0].item_type === "effect" ? "Эффект" : players[0].item_type === "item" ? "Предмет" : "Спецролл"}
+                              label={getItemTypeLabel(players[0].item_type)}
                               size="small"
-                              color={players[0].item_type === "effect" ? "warning" : players[0].item_type === "item" ? "primary" : "secondary"}
+                              color={getItemTypeColor(players[0].item_type)}
                               sx={{ height: 24, fontSize: "0.85rem" }}
                             />
                           </TableCell>
@@ -423,9 +416,9 @@ export default function InventoriesPageClient({
                             </TableCell>
                             <TableCell>
                               <Chip
-                                label={p.item_type === "effect" ? "Эффект" : p.item_type === "item" ? "Предмет" : "Спецролл"}
+                                label={getItemTypeLabel(p.item_type)}
                                 size="small"
-                                color={p.item_type === "effect" ? "warning" : p.item_type === "item" ? "primary" : "secondary"}
+                                color={getItemTypeColor(p.item_type)}
                                 sx={{ height: 24, fontSize: "0.85rem" }}
                               />
                             </TableCell>

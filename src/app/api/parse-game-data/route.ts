@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { fetchAndUpsertGameData, ensureTables } from "@/lib/services";
+import { authenticateRequest } from "@/lib/auth";
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const token = authHeader?.replace("Bearer ", "");
-  if (token !== process.env.PARSE_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = authenticateRequest(request);
+  if (authError) return authError;
 
   try {
     await ensureTables();

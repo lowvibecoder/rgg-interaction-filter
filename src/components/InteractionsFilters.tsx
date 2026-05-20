@@ -21,6 +21,19 @@ import { ruRU } from "@mui/x-date-pickers/locales";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 
+function parseDate(str: string | null): Date | null {
+  if (!str) return null;
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function useDebounce(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -49,19 +62,6 @@ export default function InteractionsFilters({
 }: FiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  function parseDate(str: string | null): Date | null {
-    if (!str) return null;
-    const [y, m, d] = str.split("-").map(Number);
-    return new Date(y, m - 1, d);
-  }
-
-  function toDateStr(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
 
   const parsedDefaultMin = parseDate(defaultMinDate);
   const parsedDefaultMax = parseDate(defaultMaxDate);

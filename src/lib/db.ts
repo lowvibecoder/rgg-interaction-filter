@@ -1,5 +1,8 @@
 import { neon } from "@neondatabase/serverless";
 import { ACTIVE_PLAYERS } from "./players";
+import { dateFromStr, dateToEndTimestamp, OFFSET } from "./dateUtils";
+
+export { dateFromStr, dateToEndTimestamp };
 
 let _sql: ReturnType<typeof neon> | null = null;
 export const getSql = () => {
@@ -10,20 +13,6 @@ export const getSql = () => {
   }
   return _sql;
 };
-
-// Timezone offset in ms: use TZ_OFFSET env var (in hours), fallback to server timezone
-const TZ_HOURS = process.env.TZ_OFFSET ? Number(process.env.TZ_OFFSET) : -new Date().getTimezoneOffset() / 60;
-const OFFSET = TZ_HOURS * 60 * 60 * 1000; // local timezone offset in ms
-
-// Convert YYYY-MM-DD to local midnight timestamp
-function dateFromStr(s: string): number {
-  const [y, m, d] = s.split("-").map(Number);
-  return Date.UTC(y, m - 1, d) + OFFSET;
-}
-function dateToEndTimestamp(s: string): number {
-  const [y, m, d] = s.split("-").map(Number);
-  return Date.UTC(y, m - 1, d + 1) + OFFSET - 1;
-}
 
 export async function batchUpsertInteractions(
   interactions: Array<{
@@ -48,7 +37,7 @@ export async function batchUpsertInteractions(
     params
   );
 
-  return { inserted: interactions.length, updated: 0 };
+  return { inserted: interactions.length };
 }
 
 export async function batchUpsertAllRecipients(
@@ -69,68 +58,11 @@ export async function batchUpsertAllRecipients(
   );
 }
 
-export async function getSenders(filters?: {
-  dateFrom?: string; dateTo?: string; recipient?: string; action?: string; activeOnly?: boolean;
-}) {
-  const sql = getSql();
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  let pi = 1;
-  if (filters?.dateFrom) {
-    conditions.push(`i.date_added >= $${pi++}::bigint`);
-    params.push(String(dateFromStr(filters.dateFrom)));
-  }
-  if (filters?.dateTo) {
-    conditions.push(`i.date_added <= $${pi++}::bigint`);
-    params.push(String(dateToEndTimestamp(filters.dateTo)));
-  }
-  if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
-  if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
-  if (filters?.activeOnly) {
-    const ph = ACTIVE_PLAYERS.map(() => `$${pi++}`).join(",");
-    conditions.push(`i.sender_name IN (${ph})`);
-    params.push(...ACTIVE_PLAYERS);
-  }
-  const join = filters?.recipient ? "JOIN interaction_recipients ir ON ir.interaction_id = i.id" : "";
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const rows = (await sql.query(
-    `SELECT DISTINCT i.sender_name FROM interactions i ${join} ${where} ORDER BY i.sender_name`,
-    params
-  )) as { sender_name: string }[];
-  return rows;
-}
-
 export async function getSendersAll(): Promise<{ sender_name: string }[]> {
   const sql = getSql();
   return (await sql`
     SELECT DISTINCT sender_name FROM interactions ORDER BY sender_name
   `) as { sender_name: string }[];
-}
-
-export async function getRecipients(filters?: {
-  dateFrom?: string; dateTo?: string; sender?: string; action?: string; activeOnly?: boolean;
-}) {
-  const sql = getSql();
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  let pi = 1;
-  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}::bigint`); params.push(String(dateFromStr(filters.dateFrom))); }
-  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}::bigint`); params.push(String(dateToEndTimestamp(filters.dateTo))); }
-  if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
-  if (filters?.action) { conditions.push(`i.action_type = $${pi++}`); params.push(filters.action); }
-  if (filters?.activeOnly) {
-    const ph = ACTIVE_PLAYERS.map(() => `$${pi++}`).join(",");
-    conditions.push(`i.sender_name IN (${ph})`);
-    params.push(...ACTIVE_PLAYERS);
-  }
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const rows = (await sql.query(
-    `SELECT DISTINCT ir.recipient_name FROM interactions i
-     JOIN interaction_recipients ir ON ir.interaction_id = i.id
-     ${where} ORDER BY ir.recipient_name`,
-    params
-  )) as { recipient_name: string }[];
-  return rows;
 }
 
 export async function getRecipientsAll(): Promise<{ recipient_name: string }[]> {
@@ -140,31 +72,6 @@ export async function getRecipientsAll(): Promise<{ recipient_name: string }[]> 
     JOIN interaction_recipients ir ON ir.interaction_id = i.id
     ORDER BY ir.recipient_name
   `) as { recipient_name: string }[];
-}
-
-export async function getActionTypes(filters?: {
-  dateFrom?: string; dateTo?: string; sender?: string; recipient?: string; activeOnly?: boolean;
-}) {
-  const sql = getSql();
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  let pi = 1;
-  if (filters?.dateFrom) { conditions.push(`i.date_added >= $${pi++}::bigint`); params.push(String(dateFromStr(filters.dateFrom))); }
-  if (filters?.dateTo) { conditions.push(`i.date_added <= $${pi++}::bigint`); params.push(String(dateToEndTimestamp(filters.dateTo))); }
-  if (filters?.sender) { conditions.push(`i.sender_name = $${pi++}`); params.push(filters.sender); }
-  if (filters?.recipient) { conditions.push(`ir.recipient_name = $${pi++}`); params.push(filters.recipient); }
-  if (filters?.activeOnly) {
-    const ph = ACTIVE_PLAYERS.map(() => `$${pi++}`).join(",");
-    conditions.push(`i.sender_name IN (${ph})`);
-    params.push(...ACTIVE_PLAYERS);
-  }
-  const join = filters?.recipient ? "JOIN interaction_recipients ir ON ir.interaction_id = i.id" : "";
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const rows = (await sql.query(
-    `SELECT DISTINCT i.action_type FROM interactions i ${join} ${where} ORDER BY i.action_type`,
-    params
-  )) as { action_type: string }[];
-  return rows;
 }
 
 export async function getActionTypesAll(): Promise<{ action_type: string }[]> {
@@ -215,7 +122,6 @@ interface InteractionResult {
   sender_login: string;
   action_type: string;
   note: string;
-  raw_text: string;
   fetched_at: string;
   recipients: { recipient_name: string; recipient_login: string }[];
 }
@@ -261,9 +167,7 @@ export async function getInteractions(query: InteractionQuery) {
   const pageSize = query.pageSize || 50;
   const offset = (page - 1) * pageSize;
 
-  const selectCols = query.note
-    ? `i.id, i.date_added, i.sender_name, i.sender_login, i.action_type, i.note, i.raw_text, i.fetched_at`
-    : `i.id, i.date_added, i.sender_name, i.sender_login, i.action_type, i.note, i.fetched_at`;
+  const selectCols = `i.id, i.date_added, i.sender_name, i.sender_login, i.action_type, i.note, i.fetched_at`;
 
   const queryStr = `
     SELECT DISTINCT ${selectCols},
@@ -312,54 +216,11 @@ export async function getInteractions(query: InteractionQuery) {
   };
 }
 
-interface GameItemRecord {
-  name: string;
-  description: string;
-  source: string;
-  icon: string;
-}
-
-export async function getGameItems(): Promise<GameItemRecord[]> {
+export async function getGameItems(): Promise<{ name: string; description: string; source: string; icon: string }[]> {
   const sql = getSql();
   return (await sql`
     SELECT name, description, source, icon FROM game_items ORDER BY name LIMIT 10000
-  `) as GameItemRecord[];
-}
-
-export async function getInventoryItems(searchTerm?: string): Promise<string[]> {
-  const sql = getSql();
-  if (searchTerm) {
-    const rows = await sql`
-      SELECT DISTINCT pi.item_name
-      FROM player_items pi
-      LEFT JOIN game_items gi ON gi.name = pi.item_name
-      WHERE pi.item_name ILIKE ${'%' + searchTerm + '%'}
-         OR gi.description ILIKE ${'%' + searchTerm + '%'}
-      ORDER BY pi.item_name
-    ` as { item_name: string }[];
-    return rows.map(r => r.item_name);
-  }
-  const rows = await sql`
-    SELECT DISTINCT item_name FROM player_items ORDER BY item_name LIMIT 10000
-  ` as { item_name: string }[];
-  return rows.map(r => r.item_name);
-}
-
-export async function getPlayerOverallInventory(playerName: string): Promise<{
-  item_name: string;
-  item_type: string;
-  quantity: number;
-  source: string | null;
-}[]> {
-  const sql = getSql();
-  return await sql`
-    SELECT pi.item_name, pi.item_type, SUM(pi.quantity) as quantity, MIN(gi.source) as source
-    FROM player_items pi
-    LEFT JOIN game_items gi ON gi.name = pi.item_name
-    WHERE pi.player_name = ${playerName}
-    GROUP BY pi.item_name, pi.item_type
-    ORDER BY pi.item_type, pi.item_name
-  ` as { item_name: string; item_type: string; quantity: number; source: string | null }[];
+  `) as { name: string; description: string; source: string; icon: string }[];
 }
 
 export async function getPlayersByInventoryItem(itemName: string): Promise<{
@@ -393,31 +254,6 @@ export async function getInteractionsLastUpdated(): Promise<Date | null> {
   return rows[0]?.last_update || null;
 }
 
-// ── Player Overview ──
-
-export async function upsertPlayerOverview(
-  playerName: string,
-  coins: number,
-  tears: number,
-  effects: number,
-  items: number,
-  specialRolls: number
-) {
-  const sql = getSql();
-  await sql`
-    INSERT INTO player_overview (player_name, coins, tears, effects, items, special_rolls, updated_at)
-    VALUES (${playerName}, ${coins}, ${tears}, ${effects}, ${items}, ${specialRolls}, NOW())
-    ON CONFLICT (player_name)
-    DO UPDATE SET
-      coins = EXCLUDED.coins,
-      tears = EXCLUDED.tears,
-      effects = EXCLUDED.effects,
-      items = EXCLUDED.items,
-      special_rolls = EXCLUDED.special_rolls,
-      updated_at = NOW()
-  `;
-}
-
 export async function getPlayerOverviews(): Promise<{
   player_name: string;
   coins: number;
@@ -441,29 +277,5 @@ export async function getPlayerOverviewLastUpdated(): Promise<Date | null> {
     SELECT MAX(updated_at) as last_update FROM player_overview
   ` as { last_update: Date | null }[];
   return rows[0]?.last_update || null;
-}
-
-export async function batchUpsertPlayerOverviews(
-  players: Array<{ playerName: string; coins: number; tears: number; effects: number; items: number; specialRolls: number }>
-) {
-  const sql = getSql();
-  if (players.length === 0) return;
-  const values = players.map((_, i) => {
-    const base = i * 6;
-    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, NOW())`;
-  }).join(", ");
-  const params = players.flatMap((p) => [p.playerName, p.coins, p.tears, p.effects, p.items, p.specialRolls]);
-  await sql.query(
-    `INSERT INTO player_overview (player_name, coins, tears, effects, items, special_rolls, updated_at)
-     VALUES ${values}
-     ON CONFLICT (player_name) DO UPDATE SET
-       coins = EXCLUDED.coins,
-       tears = EXCLUDED.tears,
-       effects = EXCLUDED.effects,
-       items = EXCLUDED.items,
-       special_rolls = EXCLUDED.special_rolls,
-       updated_at = NOW()`,
-    params
-  );
 }
 

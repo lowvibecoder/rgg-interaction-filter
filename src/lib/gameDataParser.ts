@@ -1,4 +1,4 @@
-export interface GameItem {
+interface GameItem {
   title: string;
   description?: string;
   icon?: string;

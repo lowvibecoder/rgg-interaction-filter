@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAndUpsertOverview, ensureTables } from "@/lib/services";
+import { authenticateRequest } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.PARSE_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = authenticateRequest(req);
+  if (authError) return authError;
 
   try {
     await ensureTables();
