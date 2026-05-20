@@ -400,7 +400,7 @@ export default function InventoriesPageClient({
                           <TableCell>
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                               {players.map((p) => (
-                                <Chip key={p.player_name} label={p.player_name} size="small" sx={{ height: 24, fontSize: "1rem" }} />
+                                <Chip key={p.player_name} label={p.player_name} size="small" sx={{ height: 24, fontSize: "1rem", userSelect: "text" }} />
                               ))}
                             </Box>
                           </TableCell>
@@ -503,7 +503,7 @@ export default function InventoriesPageClient({
                           <TableCell sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                               {item.players.map((p) => (
-                                <Chip key={p} label={p} size="small" sx={{ height: 24, fontSize: "1rem" }} />
+                                <Chip key={p} label={p} size="small" sx={{ height: 24, fontSize: "1rem", userSelect: "text" }} />
                               ))}
                             </Box>
                           </TableCell>
